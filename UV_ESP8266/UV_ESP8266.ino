@@ -380,9 +380,12 @@ void handleRoot() {
   
   // 添加警报设置样式
   html += ".alert-settings { padding: 15px; }";
-  html += ".setting-item { margin: 10px 0; }";
-  html += ".setting-item input[type='number'] { width: 60px; margin: 0 10px; }";
-  html += ".alert-message { background: #f44336; color: white; padding: 10px; border-radius: 4px; margin: 10px 0; }";
+  html += ".setting-item { display: flex; align-items: center; margin: 10px 0; }";
+  html += ".setting-item label { margin-right: 10px; }";
+  html += ".setting-item input[type='number'] { width: 60px; padding: 5px; border: 1px solid #ddd; border-radius: 4px; }";
+  html += ".setting-item button { margin-left: 10px; padding: 5px 15px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer; }";
+  html += ".setting-item button:hover { background: #1976D2; }";
+  html += ".setting-item input[type='checkbox'] { margin-right: 5px; }";
   
   html += "</style>";
   
@@ -481,7 +484,6 @@ void handleRoot() {
   
   // 更新表格的函数
   html += "function updateTable(data) {";
-  html += "  console.log('Updating table with data:', data);";  // 添加调试日志
   html += "  if (!data || data.length === 0) {";
   html += "    document.getElementById('historicalData').innerHTML = '<p style=\"text-align: center; padding: 20px;\">没有历史数据</p>';";
   html += "    return;";
@@ -494,7 +496,7 @@ void handleRoot() {
   html += "    html += `<tr>`;";
   html += "    html += `<td>${row.time}</td>`;";
   html += "    html += `<td><span class='uv-value ${uvClass}'>${row.uv}</span></td>`;";
-  html += "    html += `<td>${row.voltage}</td>`;";  // 添加电压显示
+  html += "    html += `<td>${row.voltage || 'N/A'}</td>`;";  // 添加默认值处理
   html += "    html += `</tr>`;";
   html += "  });";
   html += "  html += '</tbody></table>';";
@@ -597,12 +599,19 @@ void handleRoot() {
   html += "    });";
   html += "}";
 
-  html += "function showMessage(message) {";
+  html += "function showMessage(message) {";// 移除已有的警报消息";
+  html += "  const existingMsg = document.querySelector('.alert-message');";
+  html += "  if (existingMsg) existingMsg.remove();";
   html += "  const msgDiv = document.createElement('div');";
   html += "  msgDiv.className = 'alert-message';";
   html += "  msgDiv.textContent = message;";
-  html += "  document.body.appendChild(msgDiv);";
-  html += "  setTimeout(() => msgDiv.remove(), 3000);";
+  html += "  document.body.appendChild(msgDiv);";// 添加关闭按钮";
+  html += "  const closeBtn = document.createElement('button');";
+  html += "  closeBtn.innerHTML = '×';";
+  html += "  closeBtn.style.cssText = 'position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:white; font-size:20px; cursor:pointer;';";
+  html += "  closeBtn.onclick = function() { msgDiv.remove(); };";
+  html += "  msgDiv.appendChild(closeBtn);";// 播放警报声音";
+  html += "  new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBkCY2e/GdSgFKHzK8N2NOwgWZLnv6KJQDgtMpuPzuWYdBT2V1/LJeCoFJHfG8OGRPwgTYbbw66VTDghIo+H2vGke').play();";
   html += "}";
   
   html += "</script>";
@@ -685,26 +694,33 @@ void handleRoot() {
   html += "</div>";
   html += "</div>";
   
-  // 图表卡片
+  // 历史记录卡片
   html += "<div class='card'>";
   html += "<div class='card-header'>历史记录</div>";
-  html += "<div id='historicalData' style='max-height: 400px; overflow-y: auto;'></div>";  // 添加滚动条
+  html += "<div id='historicalData' style='max-height: 400px; overflow-y: auto;'></div>";
   html += "</div>";
   
-  html += "</div>";
-  html += "<div class='current-time' id='currentTime'></div>";
-  
-  // 添加警报设置界面
+  // UV警报设置卡片（独立的卡片）
   html += "<div class='card'>";
   html += "<div class='card-header'>UV警报设置</div>";
-  html += "<div class='alert-settings'>";
-  html += "<div class='setting-item'>";
-  html += "<label>警报阈值: </label>";
-  html += "<input type='number' id='alertThreshold' value='" + String(uvAlertThreshold) + "' min='0' max='11'>";
-  html += "<button onclick='setAlertThreshold()' class='btn'>设置</button>";
+  html += "<div class='alert-settings' style='padding: 20px;'>";
+  html += "<div style='display: flex; align-items: center; gap: 20px;'>";
+  
+  // 警报阈值设置
+  html += "<div class='setting-item' style='display: flex; align-items: center;'>";
+  html += "<label style='margin-right: 10px;'>警报阈值：</label>";
+  html += "<input type='number' id='alertThreshold' value='" + String(uvAlertThreshold) + "' min='0' max='11' style='width: 60px; padding: 5px; border: 1px solid #ddd; border-radius: 4px;'>";
+  html += "<button onclick='setAlertThreshold()' class='btn' style='margin-left: 10px; padding: 5px 15px;'>设置</button>";
   html += "</div>";
-  html += "<div class='setting-item'>";
-  html += "<label><input type='checkbox' id='alertEnabled' " + String(alertEnabled ? "checked" : "") + " onchange='toggleAlert()'> 启用警报</label>";
+  
+  // 启用警报开关
+  html += "<div class='setting-item' style='display: flex; align-items: center;'>";
+  html += "<label style='display: flex; align-items: center;'>";
+  html += "<input type='checkbox' id='alertEnabled' " + String(alertEnabled ? "checked" : "") + " onchange='toggleAlert()' style='margin-right: 5px;'>";
+  html += "<span>启用警报</span>";
+  html += "</label>";
+  html += "</div>";
+  
   html += "</div>";
   html += "</div>";
   html += "</div>";
@@ -831,7 +847,7 @@ void handleData() {
         sprintf(fullTimeStr, "%d年%d月%d日 %02d:%02d:%02d",
                 timeinfo->tm_year + 1900, timeinfo->tm_mon + 1, timeinfo->tm_mday,
                 timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
-        tableData += "{\"time\":\"" + String(fullTimeStr) + "\",\"uv\":" + uvValue + "}";  // 表格仍显示 UV 值
+        tableData += "{\"time\":\"" + String(fullTimeStr) + "\",\"uv\":" + uvValue + ",\"voltage\":" + voltageValue + "}";  // 添加电压值
       }
     }
   }
