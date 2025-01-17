@@ -152,6 +152,7 @@ const char HTML_STYLES[] PROGMEM = R"rawliteral(
         box-shadow: 0 6px 25px rgba(0,0,0,0.15);
     }
 
+    /* 标题栏样式优化 */
     .panel-header {
         display: flex;
         align-items: center;
@@ -162,6 +163,7 @@ const char HTML_STYLES[] PROGMEM = R"rawliteral(
         cursor: pointer;
         position: relative;
         overflow: hidden;
+        border-radius: 20px;
     }
 
     .panel-header::before {
@@ -195,6 +197,7 @@ const char HTML_STYLES[] PROGMEM = R"rawliteral(
         transform: rotate(180deg);
     }
 
+    /* 内容区域样式 */
     .panel-content {
         display: none;
         padding: 25px;
@@ -214,11 +217,11 @@ const char HTML_STYLES[] PROGMEM = R"rawliteral(
         margin: 0;
     }
 
-    /* 控制卡片样式 */
+    /* 控制卡片样式优化 */
     .control-card {
         background: white;
         border-radius: 16px;
-        padding: 20px;
+        padding: 25px;
         box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         transition: all 0.3s ease;
     }
@@ -273,36 +276,50 @@ const char HTML_STYLES[] PROGMEM = R"rawliteral(
         transform: translateX(20px);
     }
 
-    /* 输入框样式 */
+    /* 输入框容器样式优化 */
     .input-container {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 12px;
     }
 
+    /* 输入框样式优化 */
     .input-container input {
         width: 80px;
         height: 36px;
         padding: 0 12px;
-        border: 1px solid #ddd;
+        border: 1px solid #e0e0e0;
         border-radius: 8px;
         font-size: 14px;
+        background: #f8f9fa;
+        transition: all 0.3s ease;
     }
 
+    .input-container input:focus {
+        border-color: #2196F3;
+        background: white;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+    }
+
+    /* 单位标签样式 */
     .unit {
         color: #666;
         font-size: 14px;
+        font-weight: 500;
+        min-width: 30px;
     }
 
-    /* 按钮样式 */
+    /* 按钮样式优化 */
     .action-btn {
         height: 36px;
-        padding: 0 16px;
+        padding: 0 20px;
         border: none;
         border-radius: 8px;
         background: #2196F3;
         color: white;
         font-size: 14px;
+        font-weight: 500;
         cursor: pointer;
         transition: all 0.3s;
     }
@@ -311,6 +328,7 @@ const char HTML_STYLES[] PROGMEM = R"rawliteral(
         background: #1976D2;
     }
 
+    /* 危险按钮样式优化 */
     .danger-btn {
         width: 100%;
         height: 36px;
@@ -319,18 +337,20 @@ const char HTML_STYLES[] PROGMEM = R"rawliteral(
         background: #dc3545;
         color: white;
         font-size: 14px;
+        font-weight: 500;
         cursor: pointer;
         transition: all 0.3s;
+        margin-top: 15px;
     }
 
     .danger-btn:hover {
         background: #c82333;
     }
 
-    /* 日期选择器样式 */
+    /* 日期选择器容器样式优化 */
     .date-container {
         display: flex;
-        gap: 8px;
+        gap: 12px;
         width: 100%;
     }
 
@@ -338,9 +358,18 @@ const char HTML_STYLES[] PROGMEM = R"rawliteral(
         flex: 1;
         height: 36px;
         padding: 0 12px;
-        border: 1px solid #ddd;
+        border: 1px solid #e0e0e0;
         border-radius: 8px;
         font-size: 14px;
+        background: #f8f9fa;
+        transition: all 0.3s ease;
+    }
+
+    .date-input:focus {
+        border-color: #2196F3;
+        background: white;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
     }
 
     /* 响应式布局优化 */
@@ -363,6 +392,31 @@ const char HTML_STYLES[] PROGMEM = R"rawliteral(
             align-items: flex-start;
             gap: 12px;
         }
+    }
+
+    /* 控制项样式优化 */
+    .control-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 15px 0;
+        border-bottom: 1px solid #f5f5f5;
+    }
+
+    .control-item:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .control-item:first-child {
+        padding-top: 0;
+    }
+
+    /* 控制项标签样式 */
+    .control-item span {
+        color: #333;
+        font-size: 14px;
+        font-weight: 500;
     }
 </style>
 )rawliteral";
