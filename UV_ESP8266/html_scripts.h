@@ -292,9 +292,10 @@ const char HTML_SCRIPTS[] PROGMEM = R"rawliteral(
     }
 
     // 修改控制面板切换函数
-    function toggleControlPanel(header) {
-        header.classList.toggle('active');
-        const content = header.nextElementSibling;
+    function toggleControlPanel(btn) {
+        btn.classList.toggle('active');
+        const panel = btn.closest('.control-panel');
+        const content = panel.querySelector('.panel-content');
         content.classList.toggle('show');
     }
 

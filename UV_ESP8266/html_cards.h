@@ -4,8 +4,22 @@
 #include <Arduino.h>
 #include "global_vars.h"
 
-// 函数声明 - 移除默认参数
+// 函数声明
 String createStatusCard(const String& title, const String& value, const String& label, const String& color);
+String createSwitch(const String& id, bool checked, const String& onchange);
+
+// 创建开关
+String createSwitch(const String& id, bool checked, const String& onchange) {
+    String html = "<label class='switch-container'>";
+    html += "<input type='checkbox' id='" + id + "' " + 
+            (checked ? "checked" : "") + 
+            " onchange='" + onchange + "'>";
+    html += "<span class='switch-track'>";
+    html += "<span class='switch-thumb'></span>";
+    html += "</span>";
+    html += "</label>";
+    return html;
+}
 
 // 创建状态卡片
 String createStatusCards() {
@@ -17,7 +31,7 @@ String createStatusCards() {
     return html;
 }
 
-// 创建单个状态卡片 - 保留默认参数
+// 创建单个状态卡片
 String createStatusCard(const String& title, const String& value, const String& label, const String& color = "") {
     String card = "<div class='card'>";
     card += "<div class='card-header'>" + title + "</div>";
@@ -42,92 +56,69 @@ String createChartCard() {
     return card;
 }
 
-// 修改开关HTML结构
-String createSwitch(const String& id, bool checked, const String& onchange) {
-    String html = "<label class='custom-switch'>";
-    html += "<input type='checkbox' id='" + id + "' " + 
-            (checked ? "checked" : "") + 
-            " onchange='" + onchange + "'>";
-    html += "<span class='switch-handle'></span>";
-    html += "<span class='switch-bg'></span>";
-    html += "</label>";
-    return html;
-}
-
 // 创建控制面板
 String createControlPanel() {
-    String panel = "<div class='card'>";
-    panel += "<div class='control-header' onclick='toggleControlPanel(this)'>";
-    panel += "<span>控制面板</span><i>▼</i>";
+    String panel = "<div class='control-panel'>";
+    
+    // 标题栏
+    panel += "<div class='panel-header' onclick='toggleControlPanel(this)'>";
+    panel += "<div class='panel-title'>控制面板</div>";
+    panel += "<div class='arrow'>▼</div>";
     panel += "</div>";
-    panel += "<div class='control-content'>";
 
-    // 使用网格布局包装三个部分
-    panel += "<div class='control-grid'>";
+    // 内容区
+    panel += "<div class='panel-content'>";
 
-    // 传感器控制区域
-    panel += "<div class='control-section'>";
-    panel += "<h3>传感器控制</h3>";
-    panel += "<div class='section-content'>";
-    panel += "<div class='control-row'>";
-    panel += "<label>传感器状态</label>";
+    // 传感器控制卡片
+    panel += "<div class='control-card'>";
+    panel += "<div class='card-title'>传感器控制</div>";
+    panel += "<div class='control-item'>";
+    panel += "<span>传感器状态</span>";
     panel += createSwitch("sensorSwitch", sensorEnabled, "toggleSensor(this)");
     panel += "</div>";
-    panel += "<div class='control-row'>";
-    panel += "<label>读取间隔</label>";
-    panel += "<div class='input-group'>";
-    panel += "<div class='input-with-unit'>";
-    panel += "<input type='number' id='interval' value='" + String(readInterval) + "' min='1' class='form-input'>";
+    panel += "<div class='control-item'>";
+    panel += "<span>读取间隔</span>";
+    panel += "<div class='input-container'>";
+    panel += "<input type='number' id='interval' value='" + String(readInterval) + "' min='1'>";
     panel += "<span class='unit'>秒</span>";
-    panel += "</div>";
-    panel += "<button onclick='setInterval()' class='btn'>设置</button>";
-    panel += "</div>";
+    panel += "<button onclick='setInterval()' class='action-btn'>设置</button>";
     panel += "</div>";
     panel += "</div>";
     panel += "</div>";
 
-    // UV警报设置区域
-    panel += "<div class='control-section'>";
-    panel += "<h3>UV警报设置</h3>";
-    panel += "<div class='section-content'>";
-    panel += "<div class='control-row'>";
-    panel += "<label>警报阈值</label>";
-    panel += "<div class='input-group'>";
-    panel += "<div class='input-with-unit'>";
-    panel += "<input type='number' id='alertThreshold' value='" + String(uvAlertThreshold) + "' min='0' max='11' class='form-input'>";
+    // UV警报设置卡片
+    panel += "<div class='control-card'>";
+    panel += "<div class='card-title'>UV警报设置</div>";
+    panel += "<div class='control-item'>";
+    panel += "<span>警报阈值</span>";
+    panel += "<div class='input-container'>";
+    panel += "<input type='number' id='alertThreshold' value='" + String(uvAlertThreshold) + "' min='0' max='11'>";
     panel += "<span class='unit'>级</span>";
+    panel += "<button onclick='setAlertThreshold()' class='action-btn'>设置</button>";
     panel += "</div>";
-    panel += "<button onclick='setAlertThreshold()' class='btn'>设置</button>";
     panel += "</div>";
-    panel += "</div>";
-    panel += "<div class='control-row'>";
-    panel += "<label>警报状态</label>";
-    panel += "<label class='ios-switch'>";
-    panel += "<input type='checkbox' id='alertEnabled' " + String(alertEnabled ? "checked" : "") + " onchange='toggleAlert()'>";
-    panel += "<span class='slider'></span>";
-    panel += "</label>";
-    panel += "</div>";
+    panel += "<div class='control-item'>";
+    panel += "<span>警报状态</span>";
+    panel += createSwitch("alertSwitch", alertEnabled, "toggleAlert()");
     panel += "</div>";
     panel += "</div>";
 
-    // 数据管理区域
-    panel += "<div class='control-section'>";
-    panel += "<h3>数据管理</h3>";
-    panel += "<div class='section-content'>";
-    panel += "<div class='control-row'>";
-    panel += "<label>选择日期</label>";
-    panel += "<div class='date-group'>";
-    panel += "<input type='date' id='date' class='form-input date-input'>";
-    panel += "<button onclick='loadData()' class='btn'>查看</button>";
+    // 数据管理卡片
+    panel += "<div class='control-card'>";
+    panel += "<div class='card-title'>数据管理</div>";
+    panel += "<div class='control-item'>";
+    panel += "<div class='date-container'>";
+    panel += "<input type='date' id='date' class='date-input'>";
+    panel += "<button onclick='loadData()' class='action-btn'>查看</button>";
     panel += "</div>";
     panel += "</div>";
-    panel += "<div class='control-row'>";
-    panel += "<button onclick='clearData()' class='btn btn-danger'>清除所有历史数据</button>";
-    panel += "</div>";
+    panel += "<div class='control-item'>";
+    panel += "<button onclick='clearData()' class='danger-btn'>清除所有历史数据</button>";
     panel += "</div>";
     panel += "</div>";
 
-    panel += "</div></div></div>";
+    panel += "</div>";
+    panel += "</div>";
     return panel;
 }
 

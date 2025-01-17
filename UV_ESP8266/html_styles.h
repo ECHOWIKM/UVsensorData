@@ -138,111 +138,107 @@ const char HTML_STYLES[] PROGMEM = R"rawliteral(
     }
     
     /* 控制面板样式 */
-    .control-header {
-        width: 100%;
-        padding: 15px 20px;
-        background: linear-gradient(135deg, #2196F3, #1976D2);
-        color: white;
-        border: none;
-        border-radius: 12px;
-        font-size: 16px;
-        cursor: pointer;
+    .control-panel {
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        overflow: hidden;
+        margin-bottom: 20px;
+    }
+
+    .panel-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 15px;
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        padding: 16px 20px;
+        background: linear-gradient(135deg, #2196F3, #1976D2);
+        color: white;
+        cursor: pointer;
     }
-    
-    .control-header:hover {
-        background: linear-gradient(135deg, #1976D2, #1565C0);
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+
+    .panel-title {
+        font-size: 18px;
+        font-weight: 500;
     }
-    
-    .control-header i {
+
+    .panel-toggle {
+        background: none;
+        border: none;
+        color: white;
+        cursor: pointer;
+        padding: 8px;
+    }
+
+    .panel-toggle .arrow {
+        display: block;
         transition: transform 0.3s;
     }
-    
-    .control-header.active i {
+
+    .panel-toggle.active .arrow {
         transform: rotate(180deg);
     }
-    
-    .control-content {
+
+    .panel-content {
         display: none;
-    }
-    
-    .control-content.show {
-        display: block;
-        animation: fadeIn 0.3s ease;
-    }
-    
-    .section-content {
-        background: white;
         padding: 20px;
-        border-radius: 12px;
-        margin-top: 10px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     }
-    
-    .control-section {
-        margin-bottom: 20px;
+
+    .panel-content.show {
+        display: block;
+        animation: slideDown 0.3s ease;
+    }
+
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* 控制卡片样式 */
+    .control-card {
         background: #f8f9fa;
-        border-radius: 8px;
-        padding: 15px;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
     }
-    
-    .control-section:last-child {
+
+    .control-card:last-child {
         margin-bottom: 0;
     }
-    
-    .control-section h3 {
-        color: #2196F3;
+
+    .card-title {
+        color: #1976D2;
         font-size: 16px;
-        margin: 0;
-        padding-bottom: 10px;
+        font-weight: 500;
+        margin-bottom: 16px;
     }
 
-    /* 添加新的网格布局样式 */
-    .control-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 20px;
-        padding: 20px;
+    .control-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 0;
+        border-bottom: 1px solid #eee;
     }
 
-    /* 修改控制区域样式 */
-    .control-section {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        transition: all 0.3s ease;
-        height: 100%;
+    .control-item:last-child {
+        border-bottom: none;
     }
 
-    .control-section:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-    }
-
-    /* iOS风格开关样式 */
-    .ios-switch {
+    /* 开关样式 */
+    .switch-container {
         position: relative;
         display: inline-block;
-        width: 44px;
-        height: 26px;
+        width: 51px;
+        height: 31px;
     }
 
-    .ios-switch input {
-        opacity: 0;
-        width: 0;
-        height: 0;
-        margin: 0;
-    }
-
-    .ios-switch .slider {
+    .switch-track {
         position: absolute;
         cursor: pointer;
         top: 0;
@@ -250,241 +246,123 @@ const char HTML_STYLES[] PROGMEM = R"rawliteral(
         right: 0;
         bottom: 0;
         background-color: #e9e9ea;
-        transition: .3s cubic-bezier(.4,0,.2,1);
-        border-radius: 26px;
+        transition: .3s;
+        border-radius: 31px;
     }
 
-    .ios-switch .slider:before {
+    .switch-thumb {
         position: absolute;
-        content: "";
-        height: 22px;
-        width: 22px;
+        height: 27px;
+        width: 27px;
         left: 2px;
         bottom: 2px;
         background-color: white;
-        transition: .3s cubic-bezier(.4,0,.2,1);
+        transition: .3s;
         border-radius: 50%;
-        box-shadow: 0 2px 2px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
 
-    .ios-switch input:checked + .slider {
+    input:checked + .switch-track {
         background-color: #34C759;
     }
 
-    .ios-switch input:checked + .slider:before {
-        transform: translateX(18px);
+    input:checked + .switch-track .switch-thumb {
+        transform: translateX(20px);
     }
 
-    .ios-switch input:focus + .slider {
-        box-shadow: 0 0 1px #34C759;
-    }
-
-    /* 改进输入框组样式 */
-    .input-group {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-    }
-
-    .input-with-unit {
+    /* 输入框样式 */
+    .input-container {
         display: flex;
         align-items: center;
-        background: #f5f5f7;
-        border-radius: 8px;
-        overflow: hidden;
-        border: 1px solid #e0e0e0;
-        transition: all 0.3s ease;
+        gap: 8px;
     }
 
-    .input-with-unit:focus-within {
-        border-color: #34C759;
-        box-shadow: 0 0 0 3px rgba(52, 199, 89, 0.1);
-    }
-
-    .input-with-unit input {
-        border: none;
-        background: transparent;
-        padding: 8px 12px;
+    .input-container input {
         width: 80px;
+        height: 36px;
+        padding: 0 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
         font-size: 14px;
     }
 
-    .input-with-unit .unit {
-        padding: 8px 12px;
+    .unit {
         color: #666;
-        background: #ebebeb;
-        font-weight: 500;
+        font-size: 14px;
     }
 
-    /* 改进按钮样式 */
-    .btn {
-        padding: 8px 16px;
+    /* 按钮样式 */
+    .action-btn {
+        height: 36px;
+        padding: 0 16px;
         border: none;
         border-radius: 8px;
-        background: #007AFF;
+        background: #2196F3;
         color: white;
-        font-weight: 500;
+        font-size: 14px;
         cursor: pointer;
-        transition: all 0.3s ease;
+        transition: all 0.3s;
     }
 
-    .btn:hover {
-        background: #0066d6;
-        transform: translateY(-1px);
+    .action-btn:hover {
+        background: #1976D2;
     }
 
-    .btn-danger {
-        background: #FF3B30;
+    .danger-btn {
         width: 100%;
+        height: 36px;
+        border: none;
+        border-radius: 8px;
+        background: #dc3545;
+        color: white;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.3s;
     }
 
-    .btn-danger:hover {
-        background: #d63029;
+    .danger-btn:hover {
+        background: #c82333;
     }
 
-    /* 日期输入组样式 */
-    .date-group {
+    /* 日期选择器样式 */
+    .date-container {
         display: flex;
-        gap: 10px;
-        align-items: center;
+        gap: 8px;
+        width: 100%;
     }
 
     .date-input {
         flex: 1;
-        padding: 8px 12px;
-        border: 1px solid #e0e0e0;
+        height: 36px;
+        padding: 0 12px;
+        border: 1px solid #ddd;
         border-radius: 8px;
         font-size: 14px;
-        transition: all 0.3s ease;
     }
 
-    .date-input:focus {
-        border-color: #34C759;
-        box-shadow: 0 0 0 3px rgba(52, 199, 89, 0.1);
-    }
-
-    /* 控制行样式优化 */
-    .control-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 10px 0;
-    }
-
-    .control-row label {
-        color: #333;
-        font-size: 14px;
-        font-weight: 500;
-    }
-
-    /* 移动端响应式布局 */
+    /* 响应式布局 */
     @media screen and (max-width: 768px) {
-        .control-grid {
-            grid-template-columns: 1fr;
-            padding: 10px;
-            gap: 15px;
-        }
-        
-        .control-section {
+        .panel-content {
             padding: 15px;
         }
         
-        .control-row {
-            padding: 12px 0;
+        .control-card {
+            padding: 15px;
         }
-    }
-
-    /* 自定义新的开关样式 */
-    .custom-switch {
-        position: relative;
-        display: inline-block;
-        width: 52px;
-        height: 32px;
-        border-radius: 16px;
-        background: #eee;
-        padding: 2px;
-        transition: background 0.3s;
-        cursor: pointer;
-        box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
-    }
-
-    .custom-switch input {
-        display: none;
-    }
-
-    .custom-switch .switch-handle {
-        position: absolute;
-        top: 2px;
-        left: 2px;
-        width: 28px;
-        height: 28px;
-        background: white;
-        border-radius: 50%;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-    }
-
-    .custom-switch input:checked + .switch-handle {
-        transform: translateX(20px);
-    }
-
-    .custom-switch input:checked ~ .switch-bg {
-        background: #007AFF;
-    }
-
-    .switch-bg {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        border-radius: 16px;
-        transition: background 0.3s;
-    }
-
-    /* 改进输入框样式 */
-    .input-with-unit {
-        height: 40px;
-    }
-
-    .input-with-unit input {
-        height: 100%;
-        padding: 0 12px;
-        font-size: 16px;
-    }
-
-    .input-with-unit .unit {
-        height: 100%;
-        padding: 0 12px;
-        line-height: 40px;
-    }
-
-    /* 改进按钮样式 */
-    .btn {
-        height: 40px;
-        padding: 0 20px;
-        font-size: 16px;
-        border-radius: 8px;
-    }
-
-    /* 历史记录样式优化 */
-    #historicalData {
-        max-height: none;
-        overflow-y: visible;
-    }
-
-    .history-table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-
-    .history-table tr {
-        border-bottom: 1px solid #eee;
-    }
-
-    .history-table td {
-        padding: 12px;
-        text-align: center;
+        
+        .control-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        
+        .input-container {
+            width: 100%;
+        }
+        
+        .action-btn {
+            flex: 1;
+        }
     }
 </style>
 )rawliteral";
