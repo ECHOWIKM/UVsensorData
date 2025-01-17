@@ -48,10 +48,13 @@ String createControlPanel() {
     panel += "<div class='control-header' onclick='toggleControlPanel(this)'>";
     panel += "<span>控制面板</span><i>▼</i>";
     panel += "</div>";
-    panel += "<div class='control-content'>";
+    panel += "<div class='control-content' style='display: none;'>"; // 初始隐藏内容
 
+    // 使用Flexbox布局
+    panel += "<div class='control-section' style='display: flex; justify-content: space-between; flex-wrap: wrap;'>";
+    
     // 传感器控制区域
-    panel += "<div class='control-section'>";
+    panel += "<div class='section' style='flex: 1; min-width: 300px; margin: 10px;'>";
     panel += "<h3>传感器控制</h3>";
     panel += "<div class='section-content'>";
     panel += "<div class='control-row'>";
@@ -75,7 +78,7 @@ String createControlPanel() {
     panel += "</div>";
 
     // UV警报设置区域
-    panel += "<div class='control-section'>";
+    panel += "<div class='section' style='flex: 1; min-width: 300px; margin: 10px;'>";
     panel += "<h3>UV警报设置</h3>";
     panel += "<div class='section-content'>";
     // 警报阈值设置
@@ -99,7 +102,7 @@ String createControlPanel() {
     panel += "</div>";
 
     // 数据管理区域
-    panel += "<div class='control-section'>";
+    panel += "<div class='section' style='flex: 1; min-width: 300px; margin: 10px;'>";
     panel += "<h3>数据管理</h3>";
     panel += "<div class='section-content'>";
     panel += "<div class='control-row'>";
@@ -113,6 +116,7 @@ String createControlPanel() {
     panel += "</div>";
     panel += "</div>";
 
+    panel += "</div>"; // 结束Flexbox布局
     panel += "</div></div>";
     return panel;
 }

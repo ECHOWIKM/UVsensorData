@@ -296,6 +296,13 @@ const char HTML_SCRIPTS[] PROGMEM = R"rawliteral(
         header.classList.toggle('active');
         const content = header.nextElementSibling;
         content.classList.toggle('show');
+        
+        // 动画效果
+        if (content.style.display === "block") {
+            content.style.display = "none";
+        } else {
+            content.style.display = "block";
+        }
     }
 
     // 添加实时时间更新函数

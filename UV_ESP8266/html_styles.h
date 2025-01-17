@@ -203,6 +203,16 @@ const char HTML_STYLES[] PROGMEM = R"rawliteral(
         margin: 0;
         padding-bottom: 10px;
     }
+
+    .control-content {
+        transition: max-height 0.3s ease-out;
+        overflow: hidden;
+    }
+
+    .control-header.active + .control-content {
+        display: block;
+        max-height: 500px; /* 根据内容调整 */
+    }
 </style>
 )rawliteral";
 
