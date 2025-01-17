@@ -24,6 +24,7 @@
 #include <WiFiUdp.h>
 #include <TimeLib.h>
 #include <LittleFS.h>
+#include <WebSocketsServer.h>
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
@@ -36,6 +37,7 @@ const char* ssid = "sakaiwei";  // 替换为您的WiFi名称
 const char* password = "12345678";  // 替换为您的WiFi密码
 
 ESP8266WebServer server(80);  // 创建Web服务器对象
+WebSocketsServer webSocket = WebSocketsServer(81);  // 使用81端口
 
 // 定义多个NTP服务器
 const char* ntpServers[] = {
@@ -188,6 +190,21 @@ bool syncNTP() {
   return false;
 }
 
+// 添加 WebSocket 事件处理函数
+void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length) {
+    switch(type) {
+        case WStype_DISCONNECTED:
+            Serial.printf("[%u] 断开连接!\n", num);
+            break;
+        case WStype_CONNECTED:
+            {
+                IPAddress ip = webSocket.remoteIP(num);
+                Serial.printf("[%u] 连接来自 %d.%d.%d.%d\n", num, ip[0], ip[1], ip[2], ip[3]);
+            }
+            break;
+    }
+}
+
 void setup() {
   Serial.begin(9600);
   Serial.println("\n正在启动...");
@@ -255,6 +272,10 @@ void setup() {
     if(!ntpSynced) {
         Serial.println("NTP同步失败，将继续尝试...");
     }
+    
+    // 在 WiFi 连接成功后，初始化 WebSocket
+    webSocket.begin();
+    webSocket.onEvent(webSocketEvent);
     
   } else {
     Serial.println("\nWiFi连接失败!");
@@ -436,6 +457,22 @@ void handleRoot() {
   html += "      if(data.success) alert('间隔设置成功');";
   html += "    });";
   html += "}";
+  
+  // 添加 WebSocket 连接代码
+  html += "let ws = new WebSocket('ws://' + window.location.hostname + ':81/');";
+  html += "ws.onmessage = function(event) {";
+  html += "    const data = JSON.parse(event.data);";
+  html += "    document.querySelector('.data-value').textContent = data.uv;";  // 更新 UV 值
+  html += "    document.querySelector('.data-value').style.color = data.color;";  // 更新颜色
+  html += "    document.querySelector('.data-label').textContent = data.level;";  // 更新等级文本
+  html += "    document.querySelector('.data-box:nth-child(2) .data-value').textContent = data.voltage;";  // 更新电压值
+  html += "    loadData();";  // 重新加载图表数据
+  html += "};";
+  html += "ws.onclose = function() {";
+  html += "    setTimeout(function() {";
+  html += "        ws = new WebSocket('ws://' + window.location.hostname + ':81/');";
+  html += "    }, 1000);";
+  html += "};";
   
   html += "</script>";
   html += "</head><body>";
@@ -746,6 +783,7 @@ String getFormattedDateTime() {
 
 void loop() {
     server.handleClient();
+    webSocket.loop();  // 处理 WebSocket 事件
     
     // 定期更新时间
     static unsigned long lastNtpUpdate = 0;
@@ -835,6 +873,17 @@ void loop() {
         else display.print("Extreme");
         
         display.display();
+        
+        // 构建 JSON 数据
+        String jsonData = "{";
+        jsonData += "\"uv\":" + String(uv) + ",";
+        jsonData += "\"voltage\":" + String(vout) + ",";
+        jsonData += "\"level\":\"" + getUVLevelText(uv) + "\",";
+        jsonData += "\"color\":\"" + getUVLevelColor(uv) + "\"";
+        jsonData += "}";
+        
+        // 向所有连接的客户端广播数据
+        webSocket.broadcastTXT(jsonData);
     }
     
     delay(100);
