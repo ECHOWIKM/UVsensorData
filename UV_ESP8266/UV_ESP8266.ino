@@ -64,6 +64,8 @@ bool sensorEnabled = true;
 int readInterval = 10; // 默认10秒读取一次
 unsigned long lastReadTime = 0;
 String currentDate = "";
+int uvAlertThreshold = 8;  // 默认警报阈值
+bool alertEnabled = true;  // 默认开启警报
 
 // 数据记录结构
 struct UVRecord {
@@ -295,6 +297,7 @@ void setup() {
   server.on("/clear", handleClear);
   server.on("/time", handleTime);
   server.on("/uvdata", handleUVData);
+  server.on("/alert/settings", handleAlertSettings);  // 添加警报设置路由
   server.begin();
   
   // 初始化传感器
@@ -375,6 +378,12 @@ void handleRoot() {
   // 添加时间样式
   html += ".current-time { font-size: 16px; color: #666; text-align: right; }";
   
+  // 添加警报设置样式
+  html += ".alert-settings { padding: 15px; }";
+  html += ".setting-item { margin: 10px 0; }";
+  html += ".setting-item input[type='number'] { width: 60px; margin: 0 10px; }";
+  html += ".alert-message { background: #f44336; color: white; padding: 10px; border-radius: 4px; margin: 10px 0; }";
+  
   html += "</style>";
   
   // JavaScript
@@ -442,11 +451,21 @@ void handleRoot() {
   // 加载数据的函数
   html += "function loadData() {";
   html += "  const date = document.getElementById('date').value;";
+  html += "  if (!date) {";
+  html += "    alert('请选择日期');";
+  html += "    return;";
+  html += "  }";
+  html += "  console.log('Loading data for date:', date);";  // 添加调试日志
   html += "  fetch('/data?date=' + date)";
   html += "    .then(response => response.json())";
   html += "    .then(data => {";
+  html += "      console.log('Received data:', data);";  // 添加调试日志
   html += "      updateChart(data);";
   html += "      updateTable(data.table);";
+  html += "    })";
+  html += "    .catch(error => {";
+  html += "      console.error('Error loading data:', error);";  // 添加错误处理
+  html += "      alert('加载数据失败，请重试');";
   html += "    });";
   html += "}";
   
@@ -462,14 +481,20 @@ void handleRoot() {
   
   // 更新表格的函数
   html += "function updateTable(data) {";
+  html += "  console.log('Updating table with data:', data);";  // 添加调试日志
+  html += "  if (!data || data.length === 0) {";
+  html += "    document.getElementById('historicalData').innerHTML = '<p style=\"text-align: center; padding: 20px;\">没有历史数据</p>';";
+  html += "    return;";
+  html += "  }";
   html += "  let html = '<table>';";
-  html += "  html += '<thead><tr><th>时间</th><th>UV指数</th></tr></thead>';";
+  html += "  html += '<thead><tr><th>时间</th><th>UV指数</th><th>电压(mV)</th></tr></thead>';";
   html += "  html += '<tbody>';";
   html += "  data.forEach(row => {";
-  html += "    const uvClass = getUVClass(row.uv);";  // 获取 UV 等级对应的类名
+  html += "    const uvClass = getUVClass(row.uv);";
   html += "    html += `<tr>`;";
   html += "    html += `<td>${row.time}</td>`;";
   html += "    html += `<td><span class='uv-value ${uvClass}'>${row.uv}</span></td>`;";
+  html += "    html += `<td>${row.voltage}</td>`;";  // 添加电压显示
   html += "    html += `</tr>`;";
   html += "  });";
   html += "  html += '</tbody></table>';";
@@ -508,14 +533,18 @@ void handleRoot() {
   // 添加 WebSocket 连接代码
   html += "let ws = new WebSocket('ws://' + window.location.hostname + ':81/');";
   html += "ws.onmessage = function(event) {";
-  html += "    const data = JSON.parse(event.data);";// 获取所有卡片中的数据框";
-  html += "    const dataBoxes = document.querySelectorAll('.grid .card .data-box');";// 更新 UV 指数卡片 (第一个数据框)";
-  html += "    const uvBox = dataBoxes[0];";
-  html += "    uvBox.querySelector('.data-value').textContent = data.uv;";
-  html += "    uvBox.querySelector('.data-value').style.color = data.color;";
-  html += "    uvBox.querySelector('.data-label').textContent = data.level;";// 更新传感器电压卡片 (第二个数据框)";
-  html += "    dataBoxes[1].querySelector('.data-value').textContent = data.voltage;";// 更新图表";
-  html += "    loadData();";
+  html += "    const data = JSON.parse(event.data);";
+  html += "    if(data.type === 'alert') {";  // 处理警报消息
+  html += "        showMessage(data.message);";
+  html += "    } else {";  // 处理正常的数据更新
+  html += "        const dataBoxes = document.querySelectorAll('.grid .card .data-box');";
+  html += "        const uvBox = dataBoxes[0];";
+  html += "        uvBox.querySelector('.data-value').textContent = data.uv;";
+  html += "        uvBox.querySelector('.data-value').style.color = data.color;";
+  html += "        uvBox.querySelector('.data-label').textContent = data.level;";
+  html += "        dataBoxes[1].querySelector('.data-value').textContent = data.voltage;";
+  html += "        loadData();";
+  html += "    }";
   html += "};";
   html += "ws.onclose = function() {";
   html += "    setTimeout(function() {";
@@ -543,6 +572,37 @@ void handleRoot() {
   html += "  if (uv <= 7) return 'uv-high';";
   html += "  if (uv <= 10) return 'uv-very-high';";
   html += "  return 'uv-extreme';";
+  html += "}";
+  
+  // 添加警报相关的JavaScript函数
+  html += "function setAlertThreshold() {";
+  html += "  const threshold = document.getElementById('alertThreshold').value;";
+  html += "  fetch('/alert/settings?threshold=' + threshold)";
+  html += "    .then(response => response.json())";
+  html += "    .then(data => {";
+  html += "      if(data.success) {";
+  html += "        showMessage('警报阈值已设置为 ' + threshold);";
+  html += "      }";
+  html += "    });";
+  html += "}";
+
+  html += "function toggleAlert() {";
+  html += "  const enabled = document.getElementById('alertEnabled').checked;";
+  html += "  fetch('/alert/settings?enabled=' + enabled)";
+  html += "    .then(response => response.json())";
+  html += "    .then(data => {";
+  html += "      if(data.success) {";
+  html += "        showMessage('警报已' + (enabled ? '启用' : '禁用'));";
+  html += "      }";
+  html += "    });";
+  html += "}";
+
+  html += "function showMessage(message) {";
+  html += "  const msgDiv = document.createElement('div');";
+  html += "  msgDiv.className = 'alert-message';";
+  html += "  msgDiv.textContent = message;";
+  html += "  document.body.appendChild(msgDiv);";
+  html += "  setTimeout(() => msgDiv.remove(), 3000);";
   html += "}";
   
   html += "</script>";
@@ -625,10 +685,28 @@ void handleRoot() {
   html += "</div>";
   html += "</div>";
   
-  // 历史数据表格卡片
+  // 图表卡片
   html += "<div class='card'>";
   html += "<div class='card-header'>历史记录</div>";
-  html += "<div id='historicalData'></div>";
+  html += "<div id='historicalData' style='max-height: 400px; overflow-y: auto;'></div>";  // 添加滚动条
+  html += "</div>";
+  
+  html += "</div>";
+  html += "<div class='current-time' id='currentTime'></div>";
+  
+  // 添加警报设置界面
+  html += "<div class='card'>";
+  html += "<div class='card-header'>UV警报设置</div>";
+  html += "<div class='alert-settings'>";
+  html += "<div class='setting-item'>";
+  html += "<label>警报阈值: </label>";
+  html += "<input type='number' id='alertThreshold' value='" + String(uvAlertThreshold) + "' min='0' max='11'>";
+  html += "<button onclick='setAlertThreshold()' class='btn'>设置</button>";
+  html += "</div>";
+  html += "<div class='setting-item'>";
+  html += "<label><input type='checkbox' id='alertEnabled' " + String(alertEnabled ? "checked" : "") + " onchange='toggleAlert()'> 启用警报</label>";
+  html += "</div>";
+  html += "</div>";
   html += "</div>";
   
   html += "</div>";
@@ -855,6 +933,20 @@ String getFormattedDateTime() {
     return String(buffer);
 }
 
+// 添加处理警报设置的函数
+void handleAlertSettings() {
+    if(server.hasArg("threshold")) {
+        uvAlertThreshold = server.arg("threshold").toInt();
+    }
+    if(server.hasArg("enabled")) {
+        alertEnabled = server.arg("enabled") == "true";
+    }
+    
+    String response = "{\"success\":true,\"threshold\":" + String(uvAlertThreshold);
+    response += ",\"enabled\":" + String(alertEnabled ? "true" : "false") + "}";
+    server.send(200, "application/json", response);
+}
+
 void loop() {
     server.handleClient();
     webSocket.loop();  // 处理 WebSocket 事件
@@ -948,16 +1040,22 @@ void loop() {
         
         display.display();
         
-        // 构建 JSON 数据
+        // 先发送正常的数据更新
         String jsonData = "{";
         jsonData += "\"uv\":" + String(uv) + ",";
         jsonData += "\"voltage\":" + String(vout) + ",";
         jsonData += "\"level\":\"" + getUVLevelText(uv) + "\",";
         jsonData += "\"color\":\"" + getUVLevelColor(uv) + "\"";
         jsonData += "}";
-        
-        // 向所有连接的客户端广播数据
         webSocket.broadcastTXT(jsonData);
+        
+        // 如果需要，再发送警报消息
+        if(alertEnabled && uv >= uvAlertThreshold) {
+            delay(100);  // 短暂延迟确保消息不会冲突
+            String alertMsg = "{\"type\":\"alert\",\"message\":\"警告：UV指数已达到 " + String(uv);
+            alertMsg += "，超过警报阈值 " + String(uvAlertThreshold) + "！请注意防护。\"}";
+            webSocket.broadcastTXT(alertMsg);
+        }
     }
     
     delay(100);
