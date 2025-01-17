@@ -137,105 +137,108 @@ const char HTML_STYLES[] PROGMEM = R"rawliteral(
         to { transform: translateX(0); }
     }
     
-    /* 控制面板样式 */
+    /* 控制面板基础样式 */
     .control-panel {
         background: #fff;
-        border-radius: 16px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border-radius: 20px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
         overflow: hidden;
         margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+
+    .control-panel:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 25px rgba(0,0,0,0.15);
     }
 
     .panel-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 16px 20px;
+        padding: 20px 25px;
         background: linear-gradient(135deg, #2196F3, #1976D2);
         color: white;
         cursor: pointer;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .panel-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(45deg, rgba(255,255,255,0.1), rgba(255,255,255,0));
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .panel-header:hover::before {
+        opacity: 1;
     }
 
     .panel-title {
         font-size: 18px;
         font-weight: 500;
+        letter-spacing: 0.5px;
     }
 
-    .panel-toggle {
-        background: none;
-        border: none;
-        color: white;
-        cursor: pointer;
-        padding: 8px;
+    .arrow {
+        font-size: 20px;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    .panel-toggle .arrow {
-        display: block;
-        transition: transform 0.3s;
-    }
-
-    .panel-toggle.active .arrow {
+    .panel-header.active .arrow {
         transform: rotate(180deg);
     }
 
     .panel-content {
         display: none;
-        padding: 20px;
+        padding: 25px;
+        background: #f8f9fa;
     }
 
     .panel-content.show {
         display: block;
-        animation: slideDown 0.3s ease;
+        animation: slideDown 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    @keyframes slideDown {
-        from {
-            opacity: 0;
-            transform: translateY(-10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+    /* 控制卡片网格布局 */
+    .control-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        margin: 0;
     }
 
     /* 控制卡片样式 */
     .control-card {
-        background: #f8f9fa;
-        border-radius: 12px;
+        background: white;
+        border-radius: 16px;
         padding: 20px;
-        margin-bottom: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
     }
 
-    .control-card:last-child {
-        margin-bottom: 0;
+    .control-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     }
 
-    .card-title {
-        color: #1976D2;
-        font-size: 16px;
-        font-weight: 500;
-        margin-bottom: 16px;
-    }
-
-    .control-item {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 12px 0;
-        border-bottom: 1px solid #eee;
-    }
-
-    .control-item:last-child {
-        border-bottom: none;
-    }
-
-    /* 开关样式 */
+    /* 开关样式优化 */
     .switch-container {
         position: relative;
         display: inline-block;
         width: 51px;
         height: 31px;
+        margin: 0;
+    }
+
+    .switch-container input {
+        display: none;
     }
 
     .switch-track {
@@ -246,7 +249,7 @@ const char HTML_STYLES[] PROGMEM = R"rawliteral(
         right: 0;
         bottom: 0;
         background-color: #e9e9ea;
-        transition: .3s;
+        transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
         border-radius: 31px;
     }
 
@@ -257,7 +260,7 @@ const char HTML_STYLES[] PROGMEM = R"rawliteral(
         left: 2px;
         bottom: 2px;
         background-color: white;
-        transition: .3s;
+        transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
         border-radius: 50%;
         box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
@@ -340,10 +343,15 @@ const char HTML_STYLES[] PROGMEM = R"rawliteral(
         font-size: 14px;
     }
 
-    /* 响应式布局 */
+    /* 响应式布局优化 */
     @media screen and (max-width: 768px) {
         .panel-content {
             padding: 15px;
+        }
+        
+        .control-cards {
+            grid-template-columns: 1fr;
+            gap: 15px;
         }
         
         .control-card {
@@ -354,14 +362,6 @@ const char HTML_STYLES[] PROGMEM = R"rawliteral(
             flex-direction: column;
             align-items: flex-start;
             gap: 12px;
-        }
-        
-        .input-container {
-            width: 100%;
-        }
-        
-        .action-btn {
-            flex: 1;
         }
     }
 </style>

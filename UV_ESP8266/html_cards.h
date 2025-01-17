@@ -68,6 +68,7 @@ String createControlPanel() {
 
     // 内容区
     panel += "<div class='panel-content'>";
+    panel += "<div class='control-cards'>";
 
     // 传感器控制卡片
     panel += "<div class='control-card'>";
@@ -117,6 +118,7 @@ String createControlPanel() {
     panel += "</div>";
     panel += "</div>";
 
+    panel += "</div>";
     panel += "</div>";
     panel += "</div>";
     return panel;
