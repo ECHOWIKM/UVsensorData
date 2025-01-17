@@ -69,6 +69,36 @@ struct UVRecord {
   int uvIndex;
 };
 
+// 获取UV等级对应的颜色
+String getUVLevelColor(int uvIndex) {
+  if(uvIndex <= 2) {
+    return "#4CAF50"; // 绿色
+  } else if(uvIndex <= 5) {
+    return "#FFC107"; // 黄色
+  } else if(uvIndex <= 7) {
+    return "#FF9800"; // 橙色
+  } else if(uvIndex <= 10) {
+    return "#F44336"; // 红色
+  } else {
+    return "#9C27B0"; // 紫色
+  }
+}
+
+// 获取UV等级对应的文本描述
+String getUVLevelText(int uvIndex) {
+  if(uvIndex <= 2) {
+    return "低";
+  } else if(uvIndex <= 5) {
+    return "中等";
+  } else if(uvIndex <= 7) {
+    return "高";
+  } else if(uvIndex <= 10) {
+    return "很高";
+  } else {
+    return "极高";
+  }
+}
+
 // 添加时间转换辅助函数
 time_t getLocalTime() {
     time_t now = timeClient.getEpochTime();
@@ -268,156 +298,260 @@ void setup() {
 void handleRoot() {
   String html = "<html><head>";
   html += "<meta charset='UTF-8'>";
+  html += "<meta name='viewport' content='width=device-width, initial-scale=1.0'>";
+  html += "<title>UV环境监测</title>";
+  
+  // 添加Chart.js
+  html += "<script src='https://cdn.jsdelivr.net/npm/chart.js'></script>";
+  
+  // 添加样式
   html += "<style>";
-  html += "body { font-family: Arial; margin: 20px; }";
-  html += "table { border-collapse: collapse; width: 100%; }";
-  html += "th, td { padding: 8px; text-align: left; border: 1px solid #ddd; }";
-  html += "th { background-color: #4CAF50; color: white; }";
-  html += ".current { background-color: #f2f2f2; }";
+  html += "* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; }";
+  html += "body { background: #f5f7fa; color: #333; padding: 20px; }";
+  html += ".container { max-width: 1200px; margin: 0 auto; }";
+  
+  // 卡片样式
+  html += ".card { background: white; border-radius: 15px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }";
+  html += ".card-header { font-size: 18px; color: #666; margin-bottom: 15px; }";
+  
+  // 网格布局
+  html += ".grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px; }";
+  
+  // 数据显示样式
+  html += ".data-box { text-align: center; padding: 20px; }";
+  html += ".data-value { font-size: 36px; font-weight: bold; margin: 10px 0; }";
+  html += ".data-label { color: #666; font-size: 14px; }";
+  
+  // 图表容器
+  html += ".chart-container { height: 300px; margin-top: 20px; }";
+  
+  // 开关样式
   html += ".switch { position: relative; display: inline-block; width: 60px; height: 34px; }";
   html += ".switch input { opacity: 0; width: 0; height: 0; }";
   html += ".slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }";
   html += ".slider:before { position: absolute; content: ''; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }";
   html += "input:checked + .slider { background-color: #2196F3; }";
   html += "input:checked + .slider:before { transform: translateX(26px); }";
-  html += ".control-panel { margin: 20px 0; padding: 15px; background: #f8f8f8; border-radius: 5px; }";
+  
+  // 按钮样式
+  html += ".btn { background: #2196F3; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }";
+  html += ".btn:hover { background: #1976D2; }";
+  html += ".btn-danger { background: #f44336; }";
+  html += ".btn-danger:hover { background: #d32f2f; }";
+  
   html += "</style>";
   
+  // JavaScript
   html += "<script>";
-  // 实时更新函数
-  html += "function updateAll() {";
-  // 更新时间
-  html += "  fetch('/time').then(r=>r.text()).then(time => {";
-  html += "    document.getElementById('currentTime').innerHTML = time;";
-  html += "  });";
-  // 更新UV数据
-  html += "  fetch('/uvdata').then(r=>r.json()).then(data => {";
-  html += "    document.getElementById('uvIndex').innerHTML = data.uv;";
-  html += "    document.getElementById('voltage').innerHTML = data.voltage;";
-  html += "    document.getElementById('uvLevel').innerHTML = data.level;";
-  html += "    document.getElementById('uvLevel').style.color = data.color;";
-  html += "  });";
-  // 更新历史数据
-  html += "  fetch('/data?date=' + document.getElementById('date').value).then(r=>r.text()).then(data => {";
-  html += "    document.getElementById('historicalData').innerHTML = formatData(data);";
+  
+  // 图表初始化函数
+  html += "function initCharts() {";
+  html += "  const ctx = document.getElementById('uvChart').getContext('2d');";
+  html += "  new Chart(ctx, {";
+  html += "    type: 'line',";
+  html += "    data: {";
+  html += "      labels: [],"; // 将从后端获取数据
+  html += "      datasets: [{";
+  html += "        label: 'UV指数',";
+  html += "        data: [],";
+  html += "        borderColor: '#2196F3',";
+  html += "        tension: 0.4";
+  html += "      }]";
+  html += "    },";
+  html += "    options: {";
+  html += "      responsive: true,";
+  html += "      maintainAspectRatio: false,";
+  html += "      plugins: { legend: { display: false } }";
+  html += "    }";
   html += "  });";
   html += "}";
   
-  // 页面加载完成后的初始化
+  // 页面加载完成后初始化
   html += "document.addEventListener('DOMContentLoaded', function() {";
-  html += "  updateAll();"; // 立即更新一次
-  html += "  setInterval(updateAll, 1000);"; // 每秒更新一次
+  html += "  initCharts();";
+  html += "  const today = new Date();";
+  html += "  document.getElementById('date').value = today.toISOString().split('T')[0];";
+  html += "  loadData();";
   html += "});";
   
-  // 格式化数据的函数
-  html += "function formatData(data) {";
-  html += "  if(!data) return '无数据';";
-  html += "  const rows = data.split('\\n').filter(r => r.trim());";
-  html += "  let html = '<table style=\"width:100%; border-collapse: collapse;\">';";
-  html += "  html += '<tr style=\"background-color: #4CAF50; color: white;\"><th>时间</th><th>UV指数</th></tr>';";
-  html += "  rows.forEach(row => {";
-  html += "    const [timestamp, uv] = row.split(',');";
-  html += "    const date = new Date(timestamp * 1000);"; // 时间戳已经是本地时间
-  html += "    const formattedDate = date.getFullYear() + '年' + ";
-  html += "      (date.getMonth() + 1) + '月' + ";
-  html += "      date.getDate() + '日 ' + ";
-  html += "      String(date.getHours()).padStart(2, '0') + ':' + ";
-  html += "      String(date.getMinutes()).padStart(2, '0') + ':' + ";
-  html += "      String(date.getSeconds()).padStart(2, '0');";
-  html += "    html += `<tr><td>${formattedDate}</td><td>${uv}</td></tr>`;";
-  html += "  });";
-  html += "  return html + '</table>';";
+  // 添加前端JavaScript函数
+  
+  // 加载数据的函数
+  html += "function loadData() {";
+  html += "  const date = document.getElementById('date').value;";
+  html += "  fetch('/data?date=' + date)";
+  html += "    .then(response => response.json())";
+  html += "    .then(data => {";
+  html += "      updateChart(data);";
+  html += "      updateTable(data.table);";
+  html += "    });";
   html += "}";
   
-  html += "function toggleSensor(cb) { fetch('/toggle?state=' + (cb.checked ? '1' : '0')); }";
-  html += "function setInterval() { fetch('/interval?minutes=' + document.getElementById('interval').value); }";
-  html += "function loadData() {";
-  html += "  const dateInput = document.getElementById('date');";
-  html += "  if(!dateInput.value) {";
-  html += "    const today = new Date();";
-  html += "    const year = today.getFullYear();";
-  html += "    const month = String(today.getMonth() + 1).padStart(2, '0');";
-  html += "    const day = String(today.getDate()).padStart(2, '0');";
-  html += "    dateInput.value = `${year}-${month}-${day}`;";
+  // 更新图表的函数
+  html += "function updateChart(data) {";
+  html += "  const chart = Chart.getChart('uvChart');";
+  html += "  if (chart) {";
+  html += "    chart.data.labels = data.labels;";
+  html += "    chart.data.datasets[0].data = data.data;";
+  html += "    chart.update();";
   html += "  }";
-  html += "  fetch('/data?date=' + dateInput.value).then(r=>r.text()).then(data => {";
-  html += "    document.getElementById('historicalData').innerHTML = formatData(data);";
-  html += "  });";
   html += "}";
-  html += "function clearData() { if(confirm('确定要删除所有历史数据吗？此操作不可恢复！')) { fetch('/clear').then(r=>r.text()).then(response => { alert(response); location.reload(); }); } }";
+  
+  // 更新表格的函数
+  html += "function updateTable(data) {";
+  html += "  let html = '<table style=\"width:100%; border-collapse: collapse;\">';";
+  html += "  html += '<tr><th>时间</th><th>UV指数</th></tr>';";
+  html += "  data.forEach(row => {";
+  html += "    html += `<tr><td>${row.time}</td><td>${row.uv}</td></tr>`;";
+  html += "  });";
+  html += "  html += '</table>';";
+  html += "  document.getElementById('historicalData').innerHTML = html;";
+  html += "}";
+  
+  // 清除数据的函数
+  html += "function clearData() {";
+  html += "  if(confirm('确定要清除所有历史数据吗？')) {";
+  html += "    fetch('/clear').then(r=>r.json()).then(data => {";
+  html += "      alert(data.message);";
+  html += "      loadData();";
+  html += "    });";
+  html += "  }";
+  html += "}";
+  
+  // 切换传感器状态的函数
+  html += "function toggleSensor(element) {";
+  html += "  fetch('/toggle?state=' + element.checked)";
+  html += "    .then(r=>r.json())";
+  html += "    .then(data => {";
+  html += "      if(!data.success) element.checked = !element.checked;";
+  html += "    });";
+  html += "}";
+  
+  // 设置读取间隔的函数
+  html += "function setInterval() {";
+  html += "  const value = document.getElementById('interval').value;";
+  html += "  fetch('/interval?value=' + value)";
+  html += "    .then(r=>r.json())";
+  html += "    .then(data => {";
+  html += "      if(data.success) alert('间隔设置成功');";
+  html += "    });";
+  html += "}";
   
   html += "</script>";
   html += "</head><body>";
   
-  // 修改时间显示
-  html += "<h2>当前时间: <span id='currentTime'>" + getFormattedDateTime() + "</span></h2>";
+  // HTML结构
+  html += "<div class='container'>";
   
-  // 控制面板
-  html += "<div class='control-panel'>";
-  // 传感器开关
-  html += "<div><label class='switch'><input type='checkbox' " + String(sensorEnabled ? "checked" : "") + " onchange='toggleSensor(this)'>";
-  html += "<span class='slider'></span></label> 传感器状态</div><br>";
+  // 顶部状态卡片
+  html += "<div class='grid'>";
   
-  // 间隔设置
-  html += "<div>读取间隔(秒): <input type='number' id='interval' value='" + String(readInterval) + "' min='1'>";
-  html += "<button onclick='setInterval()'>设置</button></div><br>";
-  
-  // 添加清除数据按钮
-  html += "<div><button onclick='clearData()' style='background-color: #ff4444; color: white; padding: 10px; border: none; border-radius: 5px;'>清除所有历史数据</button></div><br>";
-  
-  // 日期选择
-  time_t epochTime = timeClient.getEpochTime();
-  struct tm *ptm = gmtime ((time_t *)&epochTime);
-  String todayDate = String(ptm->tm_year + 1900) + "-" +
-                    (String(ptm->tm_mon + 1).length() < 2 ? "0" : "") + String(ptm->tm_mon + 1) + "-" +
-                    (String(ptm->tm_mday).length() < 2 ? "0" : "") + String(ptm->tm_mday);
-  
-  html += "<div>选择日期: <input type='date' id='date' value='" + todayDate + "'>";
-  html += "<button onclick='loadData()'>查看历史数据</button></div>";
+  // UV指数卡片
+  html += "<div class='card'>";
+  html += "<div class='card-header'>UV指数</div>";
+  html += "<div class='data-box'>";
+  html += "<div class='data-value' style='color: " + getUVLevelColor(uv) + "'>" + String(uv) + "</div>";
+  html += "<div class='data-label'>" + getUVLevelText(uv) + "</div>";
+  html += "</div>";
   html += "</div>";
   
-  // 修改数据显示部分，添加ID以便动态更新
-  html += "<h1>UV Sensor Data</h1>";
-  html += "<h2>Current UV Index: <span id='uvIndex'>" + String(uv) + "</span></h2>";
-  html += "<h3>Current Voltage: <span id='voltage'>" + String(vout) + "</span>mV</h3>";
+  // 电压值卡片
+  html += "<div class='card'>";
+  html += "<div class='card-header'>传感器电压</div>";
+  html += "<div class='data-box'>";
+  html += "<div class='data-value'>" + String(vout) + "</div>";
+  html += "<div class='data-label'>mV</div>";
+  html += "</div>";
+  html += "</div>";
   
-  // UV等级显示
-  html += "<p>UV Level: <span id='uvLevel' style='color: ";
-  String levelColor;
-  if(uv <= 2) levelColor = "green";
-  else if(uv <= 5) levelColor = "yellow";
-  else if(uv <= 7) levelColor = "orange";
-  else if(uv <= 10) levelColor = "red";
-  else levelColor = "purple";
-  html += levelColor + "'>";
+  // 时间卡片
+  html += "<div class='card'>";
+  html += "<div class='card-header'>当前时间</div>";
+  html += "<div class='data-box'>";
+  html += "<div class='data-value' style='font-size: 24px'>" + getFormattedDateTime() + "</div>";
+  html += "<div class='data-label'>北京时间</div>";
+  html += "</div>";
+  html += "</div>";
   
-  if(uv <= 2) html += "Low";
-  else if(uv <= 5) html += "Moderate";
-  else if(uv <= 7) html += "High";
-  else if(uv <= 10) html += "Very High";
-  else html += "Extreme";
-  html += "</span></p>";
+  html += "</div>";
   
-  // 历史数据显示区域
+  // 图表卡片
+  html += "<div class='card'>";
+  html += "<div class='card-header'>UV指数趋势</div>";
+  html += "<div class='chart-container'>";
+  html += "<canvas id='uvChart'></canvas>";
+  html += "</div>";
+  html += "</div>";
+  
+  // 控制面板卡片
+  html += "<div class='card'>";
+  html += "<div class='card-header'>控制面板</div>";
+  html += "<div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; padding: 20px;'>";
+  
+  // 传感器开关
+  html += "<div>";
+  html += "<label class='switch'>";
+  html += "<input type='checkbox' " + String(sensorEnabled ? "checked" : "") + " onchange='toggleSensor(this)'>";
+  html += "<span class='slider'></span>";
+  html += "</label>";
+  html += "<span style='margin-left: 10px'>传感器状态</span>";
+  html += "</div>";
+  
+  // 读取间隔设置
+  html += "<div>";
+  html += "<input type='number' id='interval' value='" + String(readInterval) + "' min='1' style='width: 80px; padding: 5px;'>";
+  html += "<button class='btn' onclick='setInterval()' style='margin-left: 10px'>设置间隔(秒)</button>";
+  html += "</div>";
+  
+  // 日期选择
+  html += "<div>";
+  html += "<input type='date' id='date' style='padding: 5px;'>";
+  html += "<button class='btn' onclick='loadData()' style='margin-left: 10px'>查看历史</button>";
+  html += "</div>";
+  
+  // 清除数据按钮
+  html += "<div>";
+  html += "<button class='btn btn-danger' onclick='clearData()'>清除历史数据</button>";
+  html += "</div>";
+  
+  html += "</div>";
+  html += "</div>";
+  
+  // 历史数据表格卡片
+  html += "<div class='card'>";
+  html += "<div class='card-header'>历史记录</div>";
   html += "<div id='historicalData'></div>";
+  html += "</div>";
   
+  html += "</div>";
   html += "</body></html>";
+  
   server.send(200, "text/html", html);
 }
 
 void handleToggle() {
   if(server.hasArg("state")) {
-    sensorEnabled = server.arg("state") == "1";
+    sensorEnabled = (server.arg("state") == "true");
+    String response = "{\"success\":true,\"enabled\":" + String(sensorEnabled ? "true" : "false") + "}";
+    server.send(200, "application/json", response);
+  } else {
+    server.send(400, "text/plain", "缺少状态参数");
   }
-  server.send(200, "text/plain", sensorEnabled ? "开启" : "关闭");
 }
 
 void handleInterval() {
-  if(server.hasArg("minutes")) {
-    readInterval = server.arg("minutes").toInt();
-    if(readInterval < 1) readInterval = 1;
+  if(server.hasArg("value")) {
+    int newInterval = server.arg("value").toInt();
+    if(newInterval >= 1) {
+      readInterval = newInterval;
+      String response = "{\"success\":true,\"interval\":" + String(readInterval) + "}";
+      server.send(200, "application/json", response);
+    } else {
+      server.send(400, "text/plain", "间隔必须大于等于1秒");
+    }
+  } else {
+    server.send(400, "text/plain", "缺少间隔参数");
   }
-  server.send(200, "text/plain", String(readInterval));
 }
 
 void saveUVData() {
@@ -453,48 +587,70 @@ void saveUVData() {
 }
 
 void handleData() {
-  if(server.hasArg("date")) {
-    String requestDate = server.arg("date");
-    // 将YYYY-MM-DD格式转换为文件名格式
-    requestDate.replace("-", "");
-    String filename = "/" + requestDate + ".txt";
-    
-    if(LittleFS.exists(filename)) {
-      File file = LittleFS.open(filename, "r");
-      String data = file.readString();
-      file.close();
-      
-      // 修改JavaScript中的时间显示格式
-      String html = "<script>";
-      html += "function formatTimestamp(timestamp) {";
-      html += "  const date = new Date(timestamp * 1000);";
-      html += "  date.setTime(date.getTime());"; // 使用本地时间
-      html += "  return `${date.getFullYear()}年${date.getMonth()+1}月${date.getDate()}日 ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}:${String(date.getSeconds()).padStart(2,'0')}`;";
-      html += "}";
-      html += "</script>";
-      
-      server.send(200, "text/html", html + data);
-    } else {
-      server.send(404, "text/plain", "无数据");
-    }
-  } else {
-    // 如果没有提供日期参数，默认使用今天的日期
-    time_t epochTime = timeClient.getEpochTime();
-    struct tm *ptm = gmtime ((time_t *)&epochTime);
-    String today = String(ptm->tm_year + 1900);
-    today += (String(ptm->tm_mon + 1).length() < 2 ? "0" : "") + String(ptm->tm_mon + 1);
-    today += (String(ptm->tm_mday).length() < 2 ? "0" : "") + String(ptm->tm_mday);
-    
-    String filename = "/" + today + ".txt";
-    if(LittleFS.exists(filename)) {
-      File file = LittleFS.open(filename, "r");
-      String data = file.readString();
-      file.close();
-      server.send(200, "text/plain", data);
-    } else {
-      server.send(404, "text/plain", "今日暂无数据记录");
+  if(!server.hasArg("date")) {
+    server.send(400, "text/plain", "需要日期参数");
+    return;
+  }
+
+  String requestDate = server.arg("date");
+  requestDate.replace("-", "");
+  String filename = "/" + requestDate + ".txt";
+  
+  if(!LittleFS.exists(filename)) {
+    // 返回空数据的JSON格式
+    server.send(200, "application/json", "{\"labels\":[],\"data\":[]}");
+    return;
+  }
+
+  File file = LittleFS.open(filename, "r");
+  if(!file) {
+    server.send(500, "text/plain", "无法读取文件");
+    return;
+  }
+
+  // 准备JSON数据
+  String jsonResponse = "{\"labels\":[],\"data\":[],\"table\":[]}";
+  String labels = "";
+  String data = "";
+  String tableData = "";
+  
+  while(file.available()) {
+    String line = file.readStringUntil('\n');
+    if(line.length() > 0) {
+      int commaIndex = line.indexOf(',');
+      if(commaIndex > 0) {
+        String timestamp = line.substring(0, commaIndex);
+        String uvValue = line.substring(commaIndex + 1);
+        
+        // 转换时间戳为可读格式
+        time_t ts = timestamp.toInt();
+        struct tm * timeinfo = localtime(&ts);
+        char timeStr[20];
+        sprintf(timeStr, "%02d:%02d:%02d", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+        
+        // 添加到数组
+        if(labels.length() > 0) {
+          labels += ",";
+          data += ",";
+          tableData += ",";
+        }
+        labels += "\"" + String(timeStr) + "\"";
+        data += uvValue;
+        
+        // 为表格准备完整时间格式
+        char fullTimeStr[30];
+        sprintf(fullTimeStr, "%d年%d月%d日 %02d:%02d:%02d",
+                timeinfo->tm_year + 1900, timeinfo->tm_mon + 1, timeinfo->tm_mday,
+                timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+        tableData += "{\"time\":\"" + String(fullTimeStr) + "\",\"uv\":" + uvValue + "}";
+      }
     }
   }
+  file.close();
+
+  // 构建完整的JSON响应
+  jsonResponse = "{\"labels\":[" + labels + "],\"data\":[" + data + "],\"table\":[" + tableData + "]}";
+  server.send(200, "application/json", jsonResponse);
 }
 
 int getFilteredValue() {
@@ -516,13 +672,17 @@ int getFilteredValue() {
 
 void handleClear() {
   Dir dir = LittleFS.openDir("/");
-  int count = 0;
-  while (dir.next()) {
-    if (LittleFS.remove("/" + dir.fileName())) {
-      count++;
+  int filesDeleted = 0;
+  
+  while(dir.next()) {
+    if(dir.fileName().endsWith(".txt")) {
+      LittleFS.remove("/" + dir.fileName());
+      filesDeleted++;
     }
   }
-  server.send(200, "text/plain", "已清除 " + String(count) + " 个数据文件");
+  
+  String response = "{\"success\":true,\"message\":\"已删除 " + String(filesDeleted) + " 个文件\"}";
+  server.send(200, "application/json", response);
 }
 
 // 添加新的处理函数用于获取当前时间
@@ -532,25 +692,14 @@ void handleTime() {
 
 // 添加新的处理函数用于获取UV数据
 void handleUVData() {
-  String response = "{";
-  response += "\"uv\":" + String(uv) + ",";
-  response += "\"voltage\":" + String(vout) + ",";
-  response += "\"level\":\"";
-  if(uv <= 2) response += "Low";
-  else if(uv <= 5) response += "Moderate";
-  else if(uv <= 7) response += "High";
-  else if(uv <= 10) response += "Very High";
-  else response += "Extreme";
-  response += "\",";
-  response += "\"color\":\"";
-  if(uv <= 2) response += "green";
-  else if(uv <= 5) response += "yellow";
-  else if(uv <= 7) response += "orange";
-  else if(uv <= 10) response += "red";
-  else response += "purple";
-  response += "\"";
-  response += "}";
-  server.send(200, "application/json", response);
+  String jsonResponse = "{";
+  jsonResponse += "\"uv\":" + String(uv) + ",";
+  jsonResponse += "\"voltage\":" + String(vout) + ",";
+  jsonResponse += "\"level\":\"" + getUVLevelText(uv) + "\",";
+  jsonResponse += "\"color\":\"" + getUVLevelColor(uv) + "\",";
+  jsonResponse += "\"time\":\"" + getFormattedDateTime() + "\"";
+  jsonResponse += "}";
+  server.send(200, "application/json", jsonResponse);
 }
 
 // 添加自动清理旧文件的功能
