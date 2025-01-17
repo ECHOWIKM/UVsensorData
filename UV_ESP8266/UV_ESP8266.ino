@@ -461,12 +461,14 @@ void handleRoot() {
   // 添加 WebSocket 连接代码
   html += "let ws = new WebSocket('ws://' + window.location.hostname + ':81/');";
   html += "ws.onmessage = function(event) {";
-  html += "    const data = JSON.parse(event.data);";
-  html += "    document.querySelector('.data-value').textContent = data.uv;";  // 更新 UV 值
-  html += "    document.querySelector('.data-value').style.color = data.color;";  // 更新颜色
-  html += "    document.querySelector('.data-label').textContent = data.level;";  // 更新等级文本
-  html += "    document.querySelector('.data-box:nth-child(2) .data-value').textContent = data.voltage;";  // 更新电压值
-  html += "    loadData();";  // 重新加载图表数据
+  html += "    const data = JSON.parse(event.data);";// 获取所有卡片中的数据框";
+  html += "    const dataBoxes = document.querySelectorAll('.grid .card .data-box');";// 更新 UV 指数卡片 (第一个数据框)";
+  html += "    const uvBox = dataBoxes[0];";
+  html += "    uvBox.querySelector('.data-value').textContent = data.uv;";
+  html += "    uvBox.querySelector('.data-value').style.color = data.color;";
+  html += "    uvBox.querySelector('.data-label').textContent = data.level;";// 更新传感器电压卡片 (第二个数据框)";
+  html += "    dataBoxes[1].querySelector('.data-value').textContent = data.voltage;";// 更新图表";
+  html += "    loadData();";
   html += "};";
   html += "ws.onclose = function() {";
   html += "    setTimeout(function() {";
