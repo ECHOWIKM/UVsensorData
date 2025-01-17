@@ -203,6 +203,289 @@ const char HTML_STYLES[] PROGMEM = R"rawliteral(
         margin: 0;
         padding-bottom: 10px;
     }
+
+    /* 添加新的网格布局样式 */
+    .control-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        padding: 20px;
+    }
+
+    /* 修改控制区域样式 */
+    .control-section {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+
+    .control-section:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+
+    /* iOS风格开关样式 */
+    .ios-switch {
+        position: relative;
+        display: inline-block;
+        width: 44px;
+        height: 26px;
+    }
+
+    .ios-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+        margin: 0;
+    }
+
+    .ios-switch .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #e9e9ea;
+        transition: .3s cubic-bezier(.4,0,.2,1);
+        border-radius: 26px;
+    }
+
+    .ios-switch .slider:before {
+        position: absolute;
+        content: "";
+        height: 22px;
+        width: 22px;
+        left: 2px;
+        bottom: 2px;
+        background-color: white;
+        transition: .3s cubic-bezier(.4,0,.2,1);
+        border-radius: 50%;
+        box-shadow: 0 2px 2px rgba(0,0,0,0.1);
+    }
+
+    .ios-switch input:checked + .slider {
+        background-color: #34C759;
+    }
+
+    .ios-switch input:checked + .slider:before {
+        transform: translateX(18px);
+    }
+
+    .ios-switch input:focus + .slider {
+        box-shadow: 0 0 1px #34C759;
+    }
+
+    /* 改进输入框组样式 */
+    .input-group {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .input-with-unit {
+        display: flex;
+        align-items: center;
+        background: #f5f5f7;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid #e0e0e0;
+        transition: all 0.3s ease;
+    }
+
+    .input-with-unit:focus-within {
+        border-color: #34C759;
+        box-shadow: 0 0 0 3px rgba(52, 199, 89, 0.1);
+    }
+
+    .input-with-unit input {
+        border: none;
+        background: transparent;
+        padding: 8px 12px;
+        width: 80px;
+        font-size: 14px;
+    }
+
+    .input-with-unit .unit {
+        padding: 8px 12px;
+        color: #666;
+        background: #ebebeb;
+        font-weight: 500;
+    }
+
+    /* 改进按钮样式 */
+    .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 8px;
+        background: #007AFF;
+        color: white;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn:hover {
+        background: #0066d6;
+        transform: translateY(-1px);
+    }
+
+    .btn-danger {
+        background: #FF3B30;
+        width: 100%;
+    }
+
+    .btn-danger:hover {
+        background: #d63029;
+    }
+
+    /* 日期输入组样式 */
+    .date-group {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .date-input {
+        flex: 1;
+        padding: 8px 12px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+
+    .date-input:focus {
+        border-color: #34C759;
+        box-shadow: 0 0 0 3px rgba(52, 199, 89, 0.1);
+    }
+
+    /* 控制行样式优化 */
+    .control-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 0;
+    }
+
+    .control-row label {
+        color: #333;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    /* 移动端响应式布局 */
+    @media screen and (max-width: 768px) {
+        .control-grid {
+            grid-template-columns: 1fr;
+            padding: 10px;
+            gap: 15px;
+        }
+        
+        .control-section {
+            padding: 15px;
+        }
+        
+        .control-row {
+            padding: 12px 0;
+        }
+    }
+
+    /* 自定义新的开关样式 */
+    .custom-switch {
+        position: relative;
+        display: inline-block;
+        width: 52px;
+        height: 32px;
+        border-radius: 16px;
+        background: #eee;
+        padding: 2px;
+        transition: background 0.3s;
+        cursor: pointer;
+        box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .custom-switch input {
+        display: none;
+    }
+
+    .custom-switch .switch-handle {
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 28px;
+        height: 28px;
+        background: white;
+        border-radius: 50%;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+    }
+
+    .custom-switch input:checked + .switch-handle {
+        transform: translateX(20px);
+    }
+
+    .custom-switch input:checked ~ .switch-bg {
+        background: #007AFF;
+    }
+
+    .switch-bg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border-radius: 16px;
+        transition: background 0.3s;
+    }
+
+    /* 改进输入框样式 */
+    .input-with-unit {
+        height: 40px;
+    }
+
+    .input-with-unit input {
+        height: 100%;
+        padding: 0 12px;
+        font-size: 16px;
+    }
+
+    .input-with-unit .unit {
+        height: 100%;
+        padding: 0 12px;
+        line-height: 40px;
+    }
+
+    /* 改进按钮样式 */
+    .btn {
+        height: 40px;
+        padding: 0 20px;
+        font-size: 16px;
+        border-radius: 8px;
+    }
+
+    /* 历史记录样式优化 */
+    #historicalData {
+        max-height: none;
+        overflow-y: visible;
+    }
+
+    .history-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .history-table tr {
+        border-bottom: 1px solid #eee;
+    }
+
+    .history-table td {
+        padding: 12px;
+        text-align: center;
+    }
 </style>
 )rawliteral";
 

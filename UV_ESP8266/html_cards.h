@@ -42,6 +42,18 @@ String createChartCard() {
     return card;
 }
 
+// 修改开关HTML结构
+String createSwitch(const String& id, bool checked, const String& onchange) {
+    String html = "<label class='custom-switch'>";
+    html += "<input type='checkbox' id='" + id + "' " + 
+            (checked ? "checked" : "") + 
+            " onchange='" + onchange + "'>";
+    html += "<span class='switch-handle'></span>";
+    html += "<span class='switch-bg'></span>";
+    html += "</label>";
+    return html;
+}
+
 // 创建控制面板
 String createControlPanel() {
     String panel = "<div class='card'>";
@@ -50,16 +62,16 @@ String createControlPanel() {
     panel += "</div>";
     panel += "<div class='control-content'>";
 
+    // 使用网格布局包装三个部分
+    panel += "<div class='control-grid'>";
+
     // 传感器控制区域
     panel += "<div class='control-section'>";
     panel += "<h3>传感器控制</h3>";
     panel += "<div class='section-content'>";
     panel += "<div class='control-row'>";
     panel += "<label>传感器状态</label>";
-    panel += "<label class='switch'>";
-    panel += "<input type='checkbox' " + String(sensorEnabled ? "checked" : "") + " onchange='toggleSensor(this)'>";
-    panel += "<span class='slider'></span>";
-    panel += "</label>";
+    panel += createSwitch("sensorSwitch", sensorEnabled, "toggleSensor(this)");
     panel += "</div>";
     panel += "<div class='control-row'>";
     panel += "<label>读取间隔</label>";
@@ -78,19 +90,19 @@ String createControlPanel() {
     panel += "<div class='control-section'>";
     panel += "<h3>UV警报设置</h3>";
     panel += "<div class='section-content'>";
-    // 警报阈值设置
     panel += "<div class='control-row'>";
     panel += "<label>警报阈值</label>";
+    panel += "<div class='input-group'>";
     panel += "<div class='input-with-unit'>";
     panel += "<input type='number' id='alertThreshold' value='" + String(uvAlertThreshold) + "' min='0' max='11' class='form-input'>";
     panel += "<span class='unit'>级</span>";
     panel += "</div>";
     panel += "<button onclick='setAlertThreshold()' class='btn'>设置</button>";
     panel += "</div>";
-    // 警报开关
+    panel += "</div>";
     panel += "<div class='control-row'>";
     panel += "<label>警报状态</label>";
-    panel += "<label class='switch'>";
+    panel += "<label class='ios-switch'>";
     panel += "<input type='checkbox' id='alertEnabled' " + String(alertEnabled ? "checked" : "") + " onchange='toggleAlert()'>";
     panel += "<span class='slider'></span>";
     panel += "</label>";
@@ -104,16 +116,18 @@ String createControlPanel() {
     panel += "<div class='section-content'>";
     panel += "<div class='control-row'>";
     panel += "<label>选择日期</label>";
+    panel += "<div class='date-group'>";
     panel += "<input type='date' id='date' class='form-input date-input'>";
     panel += "<button onclick='loadData()' class='btn'>查看</button>";
     panel += "</div>";
-    panel += "<div class='control-row' style='justify-content: flex-end;'>";
+    panel += "</div>";
+    panel += "<div class='control-row'>";
     panel += "<button onclick='clearData()' class='btn btn-danger'>清除所有历史数据</button>";
     panel += "</div>";
     panel += "</div>";
     panel += "</div>";
 
-    panel += "</div></div>";
+    panel += "</div></div></div>";
     return panel;
 }
 
