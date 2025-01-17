@@ -25,8 +25,8 @@ const char HTML_STYLES[] PROGMEM = R"rawliteral(
     .switch {
         position: relative;
         display: inline-block;
-        width: 60px;
-        height: 30px;
+        width: 50px;
+        height: 34px;
     }
     .switch input {
         opacity: 0;
@@ -40,31 +40,31 @@ const char HTML_STYLES[] PROGMEM = R"rawliteral(
         left: 0;
         right: 0;
         bottom: 0;
-        background-color: #e0e0e0;
+        background-color: #ccc;
         transition: .4s;
-        border-radius: 30px;
-        box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+        border-radius: 34px;
+        width: 50px;
     }
     .slider:before {
         position: absolute;
         content: "";
-        height: 22px;
-        width: 22px;
+        height: 26px;
+        width: 26px;
         left: 4px;
         bottom: 4px;
         background-color: white;
         transition: .4s;
         border-radius: 50%;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }
     input:checked + .slider {
-        background: linear-gradient(135deg, #2196F3, #1976D2);
+        background-color: #2196F3;
     }
     input:checked + .slider:before {
-        transform: translateX(30px);
+        transform: translateX(16px);
     }
     input:focus + .slider {
-        box-shadow: inset 0 1px 3px rgba(0,0,0,0.2), 0 0 0 3px rgba(33, 150, 243, 0.1);
+        box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.3);
     }
     .control-section { 
         background: #f8f9fa; 
