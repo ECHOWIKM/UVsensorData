@@ -19,6 +19,7 @@ const char HTML_BODY_START[] PROGMEM = R"rawliteral(
 </head>
 <body>
     <div class='container'>
+        <div id='historicalData' style='max-height: 400px; overflow-y: auto;'></div>
 )rawliteral";
 
 const char HTML_BODY_END[] PROGMEM = R"rawliteral(
