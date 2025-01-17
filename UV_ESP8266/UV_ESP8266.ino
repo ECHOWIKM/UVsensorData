@@ -360,6 +360,21 @@ void handleRoot() {
   html += ".btn-danger { background: #f44336; }";
   html += ".btn-danger:hover { background: #d32f2f; }";
   
+  // 添加表格样式
+  html += "table { width: 100%; border-collapse: collapse; margin-top: 15px; }";
+  html += "th, td { padding: 12px; text-align: center; border-bottom: 1px solid #ddd; }";
+  html += "th { background-color: #f8f9fa; color: #666; }";
+  html += "tr:hover { background-color: #f5f5f5; }";
+  html += ".uv-value { font-weight: bold; padding: 4px 8px; border-radius: 4px; }";
+  html += ".uv-low { background-color: #4CAF50; color: white; }";
+  html += ".uv-moderate { background-color: #FFC107; color: black; }";
+  html += ".uv-high { background-color: #FF9800; color: white; }";
+  html += ".uv-very-high { background-color: #F44336; color: white; }";
+  html += ".uv-extreme { background-color: #9C27B0; color: white; }";
+  
+  // 添加时间样式
+  html += ".current-time { font-size: 16px; color: #666; text-align: right; }";
+  
   html += "</style>";
   
   // JavaScript
@@ -428,12 +443,17 @@ void handleRoot() {
   
   // 更新表格的函数
   html += "function updateTable(data) {";
-  html += "  let html = '<table style=\"width:100%; border-collapse: collapse;\">';";
-  html += "  html += '<tr><th>时间</th><th>UV指数</th></tr>';";
+  html += "  let html = '<table>';";
+  html += "  html += '<thead><tr><th>时间</th><th>UV指数</th></tr></thead>';";
+  html += "  html += '<tbody>';";
   html += "  data.forEach(row => {";
-  html += "    html += `<tr><td>${row.time}</td><td>${row.uv}</td></tr>`;";
+  html += "    const uvClass = getUVClass(row.uv);";  // 获取 UV 等级对应的类名
+  html += "    html += `<tr>`;";
+  html += "    html += `<td>${row.time}</td>`;";
+  html += "    html += `<td><span class='uv-value ${uvClass}'>${row.uv}</span></td>`;";
+  html += "    html += `</tr>`;";
   html += "  });";
-  html += "  html += '</table>';";
+  html += "  html += '</tbody></table>';";
   html += "  document.getElementById('historicalData').innerHTML = html;";
   html += "}";
   
@@ -483,6 +503,28 @@ void handleRoot() {
   html += "        ws = new WebSocket('ws://' + window.location.hostname + ':81/');";
   html += "    }, 1000);";
   html += "};";
+  
+  // 添加时间更新函数
+  html += "function updateCurrentTime() {";
+  html += "  fetch('/time')";
+  html += "    .then(response => response.text())";
+  html += "    .then(time => {";
+  html += "      document.getElementById('currentTime').textContent = time + ' 北京时间';";
+  html += "    });";
+  html += "}";
+  
+  // 设置定时器
+  html += "setInterval(updateCurrentTime, 1000);";  // 每秒更新一次
+  html += "updateCurrentTime();";  // 立即更新一次
+  
+  // 添加 UV 等级判断函数
+  html += "function getUVClass(uv) {";
+  html += "  if (uv <= 2) return 'uv-low';";
+  html += "  if (uv <= 5) return 'uv-moderate';";
+  html += "  if (uv <= 7) return 'uv-high';";
+  html += "  if (uv <= 10) return 'uv-very-high';";
+  html += "  return 'uv-extreme';";
+  html += "}";
   
   html += "</script>";
   html += "</head><body>";
@@ -571,6 +613,7 @@ void handleRoot() {
   html += "</div>";
   
   html += "</div>";
+  html += "<div class='current-time' id='currentTime'></div>";
   html += "</body></html>";
   
   server.send(200, "text/html", html);
