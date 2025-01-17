@@ -83,6 +83,9 @@ const char HTML_SCRIPTS[] PROGMEM = R"rawliteral(
                 console.log('收到的数据:', data);
                 if(data.labels && data.data && data.table) {
                     console.log('数据格式正确');
+                    console.log('标签数量:', data.labels.length);
+                    console.log('数据点数量:', data.data.length);
+                    console.log('表格行数:', data.table.length);
                     updateChart(data);
                     updateTable(data.table);
                 } else {
@@ -134,7 +137,6 @@ const char HTML_SCRIPTS[] PROGMEM = R"rawliteral(
         `;
         
         data.forEach((row, index) => {
-            console.log('行数据:', row);
             const bgColor = index % 2 === 0 ? '#ffffff' : '#f8f9fa';
             let uvColor;
             let uvText;
@@ -290,10 +292,9 @@ const char HTML_SCRIPTS[] PROGMEM = R"rawliteral(
     }
 
     // 修改控制面板切换函数
-    function toggleControlPanel(btn) {
-        btn.classList.toggle('active');
-        const panel = btn.closest('.control-panel');
-        const content = panel.querySelector('.panel-content');
+    function toggleControlPanel(header) {
+        header.classList.toggle('active');
+        const content = header.nextElementSibling;
         content.classList.toggle('show');
     }
 

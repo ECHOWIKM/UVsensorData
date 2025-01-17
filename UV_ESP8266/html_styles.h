@@ -137,286 +137,71 @@ const char HTML_STYLES[] PROGMEM = R"rawliteral(
         to { transform: translateX(0); }
     }
     
-    /* 控制面板基础样式 */
-    .control-panel {
-        background: #fff;
-        border-radius: 20px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-        overflow: hidden;
-        margin-bottom: 20px;
-        transition: all 0.3s ease;
-    }
-
-    .control-panel:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 25px rgba(0,0,0,0.15);
-    }
-
-    /* 标题栏样式优化 */
-    .panel-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 20px 25px;
+    /* 控制面板样式 */
+    .control-header {
+        width: 100%;
+        padding: 15px 20px;
         background: linear-gradient(135deg, #2196F3, #1976D2);
         color: white;
-        cursor: pointer;
-        position: relative;
-        overflow: hidden;
-        border-radius: 20px;
-    }
-
-    .panel-header::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(45deg, rgba(255,255,255,0.1), rgba(255,255,255,0));
-        opacity: 0;
-        transition: opacity 0.3s;
-    }
-
-    .panel-header:hover::before {
-        opacity: 1;
-    }
-
-    .panel-title {
-        font-size: 18px;
-        font-weight: 500;
-        letter-spacing: 0.5px;
-    }
-
-    .arrow {
-        font-size: 20px;
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .panel-header.active .arrow {
-        transform: rotate(180deg);
-    }
-
-    /* 内容区域样式 */
-    .panel-content {
-        display: none;
-        padding: 25px;
-        background: #f8f9fa;
-    }
-
-    .panel-content.show {
-        display: block;
-        animation: slideDown 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    /* 控制卡片网格布局 */
-    .control-cards {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 20px;
-        margin: 0;
-    }
-
-    /* 控制卡片样式优化 */
-    .control-card {
-        background: white;
-        border-radius: 16px;
-        padding: 25px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        transition: all 0.3s ease;
-    }
-
-    .control-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    }
-
-    /* 开关样式优化 */
-    .switch-container {
-        position: relative;
-        display: inline-block;
-        width: 51px;
-        height: 31px;
-        margin: 0;
-    }
-
-    .switch-container input {
-        display: none;
-    }
-
-    .switch-track {
-        position: absolute;
-        cursor: pointer;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: #e9e9ea;
-        transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
-        border-radius: 31px;
-    }
-
-    .switch-thumb {
-        position: absolute;
-        height: 27px;
-        width: 27px;
-        left: 2px;
-        bottom: 2px;
-        background-color: white;
-        transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
-        border-radius: 50%;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    }
-
-    input:checked + .switch-track {
-        background-color: #34C759;
-    }
-
-    input:checked + .switch-track .switch-thumb {
-        transform: translateX(20px);
-    }
-
-    /* 输入框容器样式优化 */
-    .input-container {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-
-    /* 输入框样式优化 */
-    .input-container input {
-        width: 80px;
-        height: 36px;
-        padding: 0 12px;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        font-size: 14px;
-        background: #f8f9fa;
-        transition: all 0.3s ease;
-    }
-
-    .input-container input:focus {
-        border-color: #2196F3;
-        background: white;
-        outline: none;
-        box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
-    }
-
-    /* 单位标签样式 */
-    .unit {
-        color: #666;
-        font-size: 14px;
-        font-weight: 500;
-        min-width: 30px;
-    }
-
-    /* 按钮样式优化 */
-    .action-btn {
-        height: 36px;
-        padding: 0 20px;
         border: none;
-        border-radius: 8px;
-        background: #2196F3;
-        color: white;
-        font-size: 14px;
-        font-weight: 500;
+        border-radius: 12px;
+        font-size: 16px;
         cursor: pointer;
-        transition: all 0.3s;
-    }
-
-    .action-btn:hover {
-        background: #1976D2;
-    }
-
-    /* 危险按钮样式优化 */
-    .danger-btn {
-        width: 100%;
-        height: 36px;
-        border: none;
-        border-radius: 8px;
-        background: #dc3545;
-        color: white;
-        font-size: 14px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.3s;
-        margin-top: 15px;
-    }
-
-    .danger-btn:hover {
-        background: #c82333;
-    }
-
-    /* 日期选择器容器样式优化 */
-    .date-container {
-        display: flex;
-        gap: 12px;
-        width: 100%;
-    }
-
-    .date-input {
-        flex: 1;
-        height: 36px;
-        padding: 0 12px;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        font-size: 14px;
-        background: #f8f9fa;
-        transition: all 0.3s ease;
-    }
-
-    .date-input:focus {
-        border-color: #2196F3;
-        background: white;
-        outline: none;
-        box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
-    }
-
-    /* 响应式布局优化 */
-    @media screen and (max-width: 768px) {
-        .panel-content {
-            padding: 15px;
-        }
-        
-        .control-cards {
-            grid-template-columns: 1fr;
-            gap: 15px;
-        }
-        
-        .control-card {
-            padding: 15px;
-        }
-        
-        .control-item {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 12px;
-        }
-    }
-
-    /* 控制项样式优化 */
-    .control-item {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 15px 0;
-        border-bottom: 1px solid #f5f5f5;
+        margin-bottom: 15px;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
-
-    .control-item:last-child {
-        border-bottom: none;
-        padding-bottom: 0;
+    
+    .control-header:hover {
+        background: linear-gradient(135deg, #1976D2, #1565C0);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
     }
-
-    .control-item:first-child {
-        padding-top: 0;
+    
+    .control-header i {
+        transition: transform 0.3s;
     }
-
-    /* 控制项标签样式 */
-    .control-item span {
-        color: #333;
-        font-size: 14px;
-        font-weight: 500;
+    
+    .control-header.active i {
+        transform: rotate(180deg);
+    }
+    
+    .control-content {
+        display: none;
+    }
+    
+    .control-content.show {
+        display: block;
+        animation: fadeIn 0.3s ease;
+    }
+    
+    .section-content {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        margin-top: 10px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    
+    .control-section {
+        margin-bottom: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+    }
+    
+    .control-section:last-child {
+        margin-bottom: 0;
+    }
+    
+    .control-section h3 {
+        color: #2196F3;
+        font-size: 16px;
+        margin: 0;
+        padding-bottom: 10px;
     }
 </style>
 )rawliteral";

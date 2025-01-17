@@ -28,8 +28,8 @@
 #include "html_template.h"
 #include "html_cards.h"
 
-const char* ssid = "sakaiwei";  // 替换为您的WiFi名称
-const char* password = "12345678";  // 替换为您的WiFi密码
+const char* ssid = "010";  // 替换为您的WiFi名称
+const char* password = "66666666";  // 替换为您的WiFi密码
 
 ESP8266WebServer server(80);  // 创建Web服务器对象
 WebSocketsServer webSocket = WebSocketsServer(81);  // 使用81端口
@@ -163,7 +163,6 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
 void setup() {
   Serial.begin(9600);
   Serial.println("\n正在启动...");
-  Serial.printf("可用堆内存: %d bytes\n", ESP.getFreeHeap());
   
   // 初始化文件系统
   initializeLittleFS();
@@ -332,89 +331,74 @@ void handleData() {
         return;
     }
 
-    // 使用动态内存分配
-    const int maxRecords = 100; // 减少最大记录数
-    String tableData = "[";
-    String chartLabels = "[";
-    String chartData = "[";
+    // 准备JSON数据 - 只读取最后20条记录
+    const int maxRecords = 20;
+    String records[maxRecords];
     int recordCount = 0;
-    bool first = true;
-
-    // 第一次遍历：计算记录总数
-    while(file.available()) {
-        String line = file.readStringUntil('\n');
-        if(line.length() > 0) recordCount++;
-    }
     
-    // 重置文件指针
-    file.seek(0);
-    
-    // 计算需要跳过的记录数（对于图表数据）
-    const int maxChartPoints = 20;
-    int skipCount = (recordCount > maxChartPoints) ? (recordCount - maxChartPoints) : 0;
-    int currentRecord = 0;
-    
-    // 第二次遍历：处理数据
+    // 先读取所有行
     while(file.available()) {
         String line = file.readStringUntil('\n');
         line.trim();
-        
         if(line.length() > 0) {
-            int firstComma = line.indexOf(',');
-            int secondComma = line.indexOf(',', firstComma + 1);
-            
-            if(firstComma > 0 && secondComma > 0) {
-                time_t timestamp = line.substring(0, firstComma).toInt();
-                String uvValue = line.substring(firstComma + 1, secondComma);
-                String voltageValue = line.substring(secondComma + 1);
-                voltageValue.trim();
-                
-                // 转换时间戳为可读格式
-                struct tm * timeinfo = localtime(&timestamp);
-                char timeStr[20];
-                sprintf(timeStr, "%02d:%02d:%02d",
-                        timeinfo->tm_hour,
-                        timeinfo->tm_min,
-                        timeinfo->tm_sec);
-                
-                // 添加到表格数据
-                if(!first) {
-                    tableData += ",";
+            if(recordCount < maxRecords) {
+                records[recordCount] = line;
+                recordCount++;
+            } else {
+                // 移动数组，删除最旧的记录
+                for(int i = 0; i < maxRecords - 1; i++) {
+                    records[i] = records[i + 1];
                 }
-                tableData += "{\"time\":\"" + String(timeStr) + "\",";
-                tableData += "\"uv\":" + uvValue + ",";
-                tableData += "\"voltage\":" + voltageValue + "}";
-                
-                // 只为最后20个点添加图表数据
-                if(currentRecord >= skipCount) {
-                    if(currentRecord > skipCount) {
-                        chartLabels += ",";
-                        chartData += ",";
-                    }
-                    chartLabels += "\"" + String(timeStr) + "\"";
-                    chartData += voltageValue;
-                }
-                
-                first = false;
-                currentRecord++;
+                records[maxRecords - 1] = line;
             }
-        }
-        
-        // 定期让出CPU时间
-        if(currentRecord % 10 == 0) {
-            delay(1);
-            yield();
         }
     }
     
     file.close();
-    
-    tableData += "]";
-    chartLabels += "]";
-    chartData += "]";
 
-    String jsonResponse = "{\"labels\":" + chartLabels + ",";
-    jsonResponse += "\"data\":" + chartData + ",";
+    // 构建JSON响应
+    String labels = "[";
+    String data = "[";
+    String tableData = "[";
+    
+    for(int i = 0; i < recordCount; i++) {
+        String line = records[i];
+        int firstComma = line.indexOf(',');
+        int secondComma = line.indexOf(',', firstComma + 1);
+        
+        if(firstComma > 0 && secondComma > 0) {
+            time_t timestamp = line.substring(0, firstComma).toInt();
+            String uvValue = line.substring(firstComma + 1, secondComma);
+            String voltageValue = line.substring(secondComma + 1);
+            
+            // 转换时间戳为可读格式
+            struct tm * timeinfo = localtime(&timestamp);
+            char timeStr[20];
+            sprintf(timeStr, "%02d:%02d:%02d",
+                    timeinfo->tm_hour,
+                    timeinfo->tm_min,
+                    timeinfo->tm_sec);
+            
+            if(i > 0) {
+                labels += ",";
+                data += ",";
+                tableData += ",";
+            }
+            
+            labels += "\"" + String(timeStr) + "\"";
+            data += voltageValue;
+            tableData += "{\"time\":\"" + String(timeStr) + "\",";
+            tableData += "\"uv\":" + uvValue + ",";
+            tableData += "\"voltage\":" + voltageValue + "}";
+        }
+    }
+    
+    labels += "]";
+    data += "]";
+    tableData += "]";
+    
+    String jsonResponse = "{\"labels\":" + labels + ",";
+    jsonResponse += "\"data\":" + data + ",";
     jsonResponse += "\"table\":" + tableData + "}";
     
     server.send(200, "application/json", jsonResponse);
