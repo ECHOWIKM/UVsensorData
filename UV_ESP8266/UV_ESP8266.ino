@@ -163,7 +163,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
 void setup() {
   Serial.begin(9600);
   Serial.println("\n正在启动...");
-  Serial.printf("初始可用堆内存: %d bytes\n", ESP.getFreeHeap());
+  Serial.printf("可用堆内存: %d bytes\n", ESP.getFreeHeap());
   
   // 初始化文件系统
   initializeLittleFS();
@@ -207,10 +207,6 @@ void setup() {
     webSocket.begin();
     webSocket.onEvent(webSocketEvent);
     
-    // 在WiFi连接成功后再次检查内存
-    if(WiFi.status() == WL_CONNECTED) {
-        Serial.printf("WiFi连接后可用堆内存: %d bytes\n", ESP.getFreeHeap());
-    }
   } else {
     Serial.println("\nWiFi连接失败!");
   }
@@ -336,26 +332,25 @@ void handleData() {
         return;
     }
 
-    // 使用流式处理方式构建JSON
-    String jsonResponse = "{\"labels\":[";
-    String chartData = "[";
+    // 使用动态内存分配
+    const int maxRecords = 100; // 减少最大记录数
     String tableData = "[";
-    
+    String chartLabels = "[";
+    String chartData = "[";
     int recordCount = 0;
     bool first = true;
-    const int maxChartPoints = 20;
-    
-    // 第一次遍历：计算总记录数
+
+    // 第一次遍历：计算记录总数
     while(file.available()) {
         String line = file.readStringUntil('\n');
         if(line.length() > 0) recordCount++;
-        yield(); // 防止看门狗复位
     }
     
     // 重置文件指针
     file.seek(0);
     
-    // 计算需要跳过的记录数
+    // 计算需要跳过的记录数（对于图表数据）
+    const int maxChartPoints = 20;
     int skipCount = (recordCount > maxChartPoints) ? (recordCount - maxChartPoints) : 0;
     int currentRecord = 0;
     
@@ -369,21 +364,20 @@ void handleData() {
             int secondComma = line.indexOf(',', firstComma + 1);
             
             if(firstComma > 0 && secondComma > 0) {
-                // 解析数据
                 time_t timestamp = line.substring(0, firstComma).toInt();
                 String uvValue = line.substring(firstComma + 1, secondComma);
                 String voltageValue = line.substring(secondComma + 1);
                 voltageValue.trim();
                 
-                // 转换时间戳
+                // 转换时间戳为可读格式
                 struct tm * timeinfo = localtime(&timestamp);
-                char timeStr[9];
+                char timeStr[20];
                 sprintf(timeStr, "%02d:%02d:%02d",
                         timeinfo->tm_hour,
                         timeinfo->tm_min,
                         timeinfo->tm_sec);
                 
-                // 构建表格数据
+                // 添加到表格数据
                 if(!first) {
                     tableData += ",";
                 }
@@ -394,51 +388,53 @@ void handleData() {
                 // 只为最后20个点添加图表数据
                 if(currentRecord >= skipCount) {
                     if(currentRecord > skipCount) {
-                        jsonResponse += ",";
+                        chartLabels += ",";
                         chartData += ",";
                     }
-                    jsonResponse += "\"" + String(timeStr) + "\"";
+                    chartLabels += "\"" + String(timeStr) + "\"";
                     chartData += voltageValue;
                 }
                 
                 first = false;
                 currentRecord++;
             }
-            
-            // 每处理10条记录让出一次CPU时间
-            if(currentRecord % 10 == 0) {
-                yield();
-            }
+        }
+        
+        // 定期让出CPU时间
+        if(currentRecord % 10 == 0) {
+            delay(1);
+            yield();
         }
     }
     
     file.close();
     
-    // 完成JSON响应
-    jsonResponse += "],\"data\":" + chartData + "],\"table\":" + tableData + "]}";
+    tableData += "]";
+    chartLabels += "]";
+    chartData += "]";
+
+    String jsonResponse = "{\"labels\":" + chartLabels + ",";
+    jsonResponse += "\"data\":" + chartData + ",";
+    jsonResponse += "\"table\":" + tableData + "}";
     
     server.send(200, "application/json", jsonResponse);
 }
 
 int getFilteredValue() {
-    static int filterArray[8] = {0};  // 增加滤波数组大小
-    static int filterIndex = 0;
-    static int filterSum = 0;
-    
-    // 读取新值
-    int newValue = analogRead(A0);
-    
-    // 从总和中减去旧值
-    filterSum -= filterArray[filterIndex];
-    // 添加新值
-    filterArray[filterIndex] = newValue;
-    filterSum += newValue;
-    
-    // 更新索引
-    filterIndex = (filterIndex + 1) % 8;
-    
-    // 返回平均值
-    return filterSum / 8;
+  int values[10];
+  int sum = 0;
+  int max_value = 0;
+  int min_value = 1023;
+  
+  for(int i = 0; i < 10; i++) {
+    values[i] = analogRead(A0);
+    sum += values[i];
+    if(values[i] > max_value) max_value = values[i];
+    if(values[i] < min_value) min_value = values[i];
+    delay(1);
+  }
+  
+  return (sum - max_value - min_value) / 8;
 }
 
 void handleClear() {
@@ -553,32 +549,21 @@ void loop() {
     
     if(sensorEnabled && (millis() - lastReadTime >= readInterval * 1000)) {
         sum = 0;
-        // 增加采样次数以提高精度
         for (int i = 0; i < 256; i++) {
             sensorValue = getFilteredValue();
             sum += sensorValue;
             delay(1);
         }
-        vout = sum >> 8;  // 除以256取平均值
-        vout = vout * 3300.0 / 1024;  // 转换为毫伏
+        vout = sum >> 8;
+        vout = vout * 3300.0 / 1024;
 
-        // 设置一个更小的阈值来过滤低电压噪声
-        const int noiseThreshold = 5;  // 5mV的阈值
-        
-        // 如果电压小于阈值，认为是0
-        if (vout <= noiseThreshold) {
-            vout = 0;
-        } else {
-            // 减去暗电压
-            int darkVoltage = darkValue * 3300.0 / 1024;
-            vout -= darkVoltage;
-            
-            // 再次确保不会出现很小的负值
-            if (vout < 0) vout = 0;
-        }
+        int darkVoltage = darkValue * 3300.0 / 1024;
+        vout -= darkVoltage;
+
+        if (vout < 0) vout = 0;
 
         // UV指数转换
-        if (vout < 50) uv = 0;        // 调整最低阈值
+        if (vout < 100) uv = 0;
         else if (vout < 227) uv = 1;
         else if (vout < 318) uv = 2;
         else if (vout < 408) uv = 3;

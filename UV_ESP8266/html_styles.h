@@ -4,8 +4,8 @@
 const char HTML_STYLES[] PROGMEM = R"rawliteral(
 <style>
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; }
-    body { background: #f5f7fa; color: #333; padding: 20px; margin: 0; }
-    .container { max-width: 100%; margin: 0 auto; padding: 0 20px; }
+    body { background: #f5f7fa; color: #333; padding: 20px; }
+    .container { max-width: 1200px; margin: 0 auto; }
     .card { background: white; border-radius: 15px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
     .card-header { font-size: 18px; color: #666; margin-bottom: 15px; }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px; }
@@ -152,6 +152,7 @@ const char HTML_STYLES[] PROGMEM = R"rawliteral(
         box-shadow: 0 6px 25px rgba(0,0,0,0.15);
     }
 
+    /* 标题栏样式优化 */
     .panel-header {
         display: flex;
         align-items: center;
@@ -196,6 +197,7 @@ const char HTML_STYLES[] PROGMEM = R"rawliteral(
         transform: rotate(180deg);
     }
 
+    /* 内容区域样式 */
     .panel-content {
         display: none;
         padding: 25px;
@@ -210,12 +212,12 @@ const char HTML_STYLES[] PROGMEM = R"rawliteral(
     /* 控制卡片网格布局 */
     .control-cards {
         display: grid;
-        grid-template-columns: repeat(3, 1fr); /* 默认三列 */
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
         gap: 20px;
         margin: 0;
     }
 
-    /* 控制卡片样式 */
+    /* 控制卡片样式优化 */
     .control-card {
         background: white;
         border-radius: 16px;
@@ -274,13 +276,14 @@ const char HTML_STYLES[] PROGMEM = R"rawliteral(
         transform: translateX(20px);
     }
 
-    /* 输入框样式 */
+    /* 输入框容器样式优化 */
     .input-container {
         display: flex;
         align-items: center;
         gap: 12px;
     }
 
+    /* 输入框样式优化 */
     .input-container input {
         width: 80px;
         height: 36px;
@@ -299,6 +302,7 @@ const char HTML_STYLES[] PROGMEM = R"rawliteral(
         box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
     }
 
+    /* 单位标签样式 */
     .unit {
         color: #666;
         font-size: 14px;
@@ -306,7 +310,7 @@ const char HTML_STYLES[] PROGMEM = R"rawliteral(
         min-width: 30px;
     }
 
-    /* 按钮样式 */
+    /* 按钮样式优化 */
     .action-btn {
         height: 36px;
         padding: 0 20px;
@@ -324,6 +328,7 @@ const char HTML_STYLES[] PROGMEM = R"rawliteral(
         background: #1976D2;
     }
 
+    /* 危险按钮样式优化 */
     .danger-btn {
         width: 100%;
         height: 36px;
@@ -342,7 +347,7 @@ const char HTML_STYLES[] PROGMEM = R"rawliteral(
         background: #c82333;
     }
 
-    /* 日期选择器样式 */
+    /* 日期选择器容器样式优化 */
     .date-container {
         display: flex;
         gap: 12px;
@@ -368,66 +373,50 @@ const char HTML_STYLES[] PROGMEM = R"rawliteral(
     }
 
     /* 响应式布局优化 */
-    @media screen and (max-width: 1400px) {
+    @media screen and (max-width: 768px) {
+        .panel-content {
+            padding: 15px;
+        }
+        
         .control-cards {
-            grid-template-columns: repeat(2, 1fr); /* 中等屏幕两列 */
-        }
-    }
-
-    @media screen and (max-width: 992px) {
-        .control-cards {
-            grid-template-columns: 1fr; /* 小屏幕单列 */
-        }
-        
-        .container {
-            padding: 0 15px;
-        }
-        
-        .control-card {
-            padding: 20px;
-        }
-    }
-
-    @media screen and (max-width: 480px) {
-        body {
-            padding: 10px;
-        }
-        
-        .container {
-            padding: 0 10px;
+            grid-template-columns: 1fr;
+            gap: 15px;
         }
         
         .control-card {
             padding: 15px;
         }
-
+        
         .control-item {
-            padding: 12px 0;
-        }
-
-        .input-container {
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .input-container input {
-            width: 100%;
-        }
-
-        .action-btn {
-            width: 100%;
-            margin-top: 8px;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
         }
     }
 
-    /* 添加平滑过渡 */
-    .control-panel,
-    .control-card,
-    .input-container,
-    .action-btn,
-    .date-input,
-    .danger-btn {
-        transition: all 0.3s ease;
+    /* 控制项样式优化 */
+    .control-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 15px 0;
+        border-bottom: 1px solid #f5f5f5;
+    }
+
+    .control-item:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .control-item:first-child {
+        padding-top: 0;
+    }
+
+    /* 控制项标签样式 */
+    .control-item span {
+        color: #333;
+        font-size: 14px;
+        font-weight: 500;
     }
 </style>
 )rawliteral";
