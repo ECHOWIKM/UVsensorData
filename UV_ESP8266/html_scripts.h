@@ -15,25 +15,54 @@ const char HTML_SCRIPTS[] PROGMEM = R"rawliteral(
                     label: '传感器电压 (mV)',
                     data: [],
                     borderColor: '#2196F3',
-                    tension: 0.1,
-                    fill: false
+                    backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                animation: {
+                    duration: 750,
+                    easing: 'easeInOutQuart'
+                },
                 scales: {
                     y: {
                         beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0,0,0,0.05)'
+                        },
                         title: {
                             display: true,
-                            text: '电压 (mV)'
+                            text: '电压 (mV)',
+                            font: {
+                                size: 14
+                            }
                         }
                     },
                     x: {
+                        grid: {
+                            display: false
+                        },
                         title: {
                             display: true,
-                            text: '时间'
+                            text: '时间',
+                            font: {
+                                size: 14
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            boxWidth: 20,
+                            font: {
+                                size: 13
+                            }
                         }
                     }
                 }
@@ -74,8 +103,18 @@ const char HTML_SCRIPTS[] PROGMEM = R"rawliteral(
             return;
         }
         
-        chart.data.labels = data.labels;
-        chart.data.datasets[0].data = data.data;
+        // 只保留最后20个数据点
+        const maxDataPoints = 20;
+        let labels = data.labels;
+        let chartData = data.data;
+        
+        if (labels.length > maxDataPoints) {
+            labels = labels.slice(-maxDataPoints);
+            chartData = chartData.slice(-maxDataPoints);
+        }
+        
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = chartData;
         chart.update();
     }
 
@@ -259,11 +298,29 @@ const char HTML_SCRIPTS[] PROGMEM = R"rawliteral(
         content.classList.toggle('show');
     }
 
+    // 添加实时时间更新函数
+    function updateCurrentTime() {
+        const timeBox = document.querySelector('.grid .card:nth-child(3)');
+        if(timeBox) {
+            const valueDiv = timeBox.querySelector('.data-value');
+            if(valueDiv) {
+                fetch('/time')
+                    .then(response => response.text())
+                    .then(time => {
+                        valueDiv.textContent = time;
+                    });
+            }
+        }
+    }
+
     // 初始化
     window.onload = function() {
         initCharts();
         document.getElementById('date').valueAsDate = new Date();
         loadData();
+        
+        // 每秒更新时间
+        setInterval(updateCurrentTime, 1000);
     };
 </script>
 )rawliteral";

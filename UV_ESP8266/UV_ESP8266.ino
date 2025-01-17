@@ -1,3 +1,5 @@
+#define MAIN_PROGRAM
+#include "global_vars.h"
 /*
  * Sensor: CJMCU-GUVA-S12SD/CJMCU-S12D
  * ESP8266 + OLED Display
@@ -25,7 +27,6 @@
 #include <WebSocketsServer.h>
 #include "html_template.h"
 #include "html_cards.h"
-#include "global_vars.h"
 
 const char* ssid = "sakaiwei";  // 替换为您的WiFi名称
 const char* password = "12345678";  // 替换为您的WiFi密码
@@ -47,19 +48,6 @@ int currentNtpServer = 0;
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "ntp.aliyun.com", 28800, 60000);  // 28800 = UTC+8
-
-// 全局变量定义（移除 extern 关键字）
-int sensorValue;
-long sum = 0;
-int vout = 0;
-int uv = 0;
-int darkValue = 0;
-bool sensorEnabled = true;
-int readInterval = 10;
-unsigned long lastReadTime = 0;
-String currentDate = "";
-int uvAlertThreshold = 8;
-bool alertEnabled = true;
 
 // 数据记录结构
 struct UVRecord {
@@ -324,7 +312,6 @@ void saveUVData() {
 
 void handleData() {
     if(!server.hasArg("date")) {
-        Serial.println("错误：缺少日期参数");
         server.send(400, "text/plain", "需要日期参数");
         return;
     }
@@ -333,74 +320,76 @@ void handleData() {
     requestDate.replace("-", "");
     String filename = "/" + requestDate + ".txt";
     
-    Serial.println("请求的文件名: " + filename);
-    
     if(!LittleFS.exists(filename)) {
-        Serial.println("文件不存在: " + filename);
         server.send(200, "application/json", "{\"labels\":[],\"data\":[],\"table\":[]}");
         return;
     }
 
     File file = LittleFS.open(filename, "r");
     if(!file) {
-        Serial.println("无法打开文件: " + filename);
         server.send(500, "text/plain", "无法读取文件");
         return;
     }
 
-    Serial.println("成功打开文件");
-
-    // 准备JSON数据
-    String labels = "[";
-    String data = "[";
-    String tableData = "[";
-    bool first = true;
-    int lineCount = 0;
-
+    // 准备JSON数据 - 只读取最后20条记录
+    const int maxRecords = 20;
+    String records[maxRecords];
+    int recordCount = 0;
+    
+    // 先读取所有行
     while(file.available()) {
         String line = file.readStringUntil('\n');
         line.trim();
         if(line.length() > 0) {
-            Serial.println("读取行: " + line);
-            int firstComma = line.indexOf(',');
-            int secondComma = line.indexOf(',', firstComma + 1);
-            
-            if(firstComma > 0 && secondComma > 0) {
-                time_t timestamp = line.substring(0, firstComma).toInt();
-                String uvValue = line.substring(firstComma + 1, secondComma);
-                String voltageValue = line.substring(secondComma + 1);
-                voltageValue.trim();
-                
-                Serial.println("解析数据 - 时间戳: " + String(timestamp) + 
-                             ", UV: " + uvValue + 
-                             ", 电压: " + voltageValue);
-                
-                // 转换时间戳为可读格式
-                struct tm * timeinfo;
-                timeinfo = localtime(&timestamp);
-                char timeStr[20];
-                sprintf(timeStr, "%02d:%02d:%02d",
-                        timeinfo->tm_hour,
-                        timeinfo->tm_min,
-                        timeinfo->tm_sec);
-                
-                if(!first) {
-                    labels += ",";
-                    data += ",";
-                    tableData += ",";
+            if(recordCount < maxRecords) {
+                records[recordCount] = line;
+                recordCount++;
+            } else {
+                // 移动数组，删除最旧的记录
+                for(int i = 0; i < maxRecords - 1; i++) {
+                    records[i] = records[i + 1];
                 }
-                
-                labels += "\"" + String(timeStr) + "\"";
-                data += voltageValue;
-                
-                // 构建表格数据
-                tableData += "{\"time\":\"" + String(timeStr) + "\",";
-                tableData += "\"uv\":" + uvValue + ",";
-                tableData += "\"voltage\":" + voltageValue + "}";
-                
-                first = false;
-                lineCount++;
+                records[maxRecords - 1] = line;
             }
+        }
+    }
+    
+    file.close();
+
+    // 构建JSON响应
+    String labels = "[";
+    String data = "[";
+    String tableData = "[";
+    
+    for(int i = 0; i < recordCount; i++) {
+        String line = records[i];
+        int firstComma = line.indexOf(',');
+        int secondComma = line.indexOf(',', firstComma + 1);
+        
+        if(firstComma > 0 && secondComma > 0) {
+            time_t timestamp = line.substring(0, firstComma).toInt();
+            String uvValue = line.substring(firstComma + 1, secondComma);
+            String voltageValue = line.substring(secondComma + 1);
+            
+            // 转换时间戳为可读格式
+            struct tm * timeinfo = localtime(&timestamp);
+            char timeStr[20];
+            sprintf(timeStr, "%02d:%02d:%02d",
+                    timeinfo->tm_hour,
+                    timeinfo->tm_min,
+                    timeinfo->tm_sec);
+            
+            if(i > 0) {
+                labels += ",";
+                data += ",";
+                tableData += ",";
+            }
+            
+            labels += "\"" + String(timeStr) + "\"";
+            data += voltageValue;
+            tableData += "{\"time\":\"" + String(timeStr) + "\",";
+            tableData += "\"uv\":" + uvValue + ",";
+            tableData += "\"voltage\":" + voltageValue + "}";
         }
     }
     
@@ -408,16 +397,9 @@ void handleData() {
     data += "]";
     tableData += "]";
     
-    file.close();
-    
-    Serial.println("处理了 " + String(lineCount) + " 行数据");
-    
-    // 构建完整的JSON响应
     String jsonResponse = "{\"labels\":" + labels + ",";
     jsonResponse += "\"data\":" + data + ",";
     jsonResponse += "\"table\":" + tableData + "}";
-
-    Serial.println("发送的JSON数据: " + jsonResponse);
     
     server.send(200, "application/json", jsonResponse);
 }

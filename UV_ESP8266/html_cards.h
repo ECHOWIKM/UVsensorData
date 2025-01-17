@@ -46,7 +46,7 @@ String createChartCard() {
 String createControlPanel() {
     String panel = "<div class='card'>";
     panel += "<div class='control-header' onclick='toggleControlPanel(this)'>";
-    panel += "控制面板 <i>▼</i>";
+    panel += "<span>控制面板</span><i>▼</i>";
     panel += "</div>";
     panel += "<div class='control-content'>";
 
@@ -54,7 +54,6 @@ String createControlPanel() {
     panel += "<div class='control-section'>";
     panel += "<h3>传感器控制</h3>";
     panel += "<div class='section-content'>";
-    // 传感器开关
     panel += "<div class='control-row'>";
     panel += "<label>传感器状态</label>";
     panel += "<label class='switch'>";
@@ -62,14 +61,15 @@ String createControlPanel() {
     panel += "<span class='slider'></span>";
     panel += "</label>";
     panel += "</div>";
-    // 读取间隔设置
     panel += "<div class='control-row'>";
     panel += "<label>读取间隔</label>";
+    panel += "<div class='input-group'>";
     panel += "<div class='input-with-unit'>";
     panel += "<input type='number' id='interval' value='" + String(readInterval) + "' min='1' class='form-input'>";
     panel += "<span class='unit'>秒</span>";
     panel += "</div>";
     panel += "<button onclick='setInterval()' class='btn'>设置</button>";
+    panel += "</div>";
     panel += "</div>";
     panel += "</div>";
     panel += "</div>";
