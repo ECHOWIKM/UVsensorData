@@ -75,6 +75,87 @@ const char HTML_STYLES[] PROGMEM = R"rawliteral(
     .date-input {
         min-width: 150px;
     }
+    /* 警报提示样式 */
+    .alert-message {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #f44336;
+        color: white;
+        padding: 15px 40px 15px 20px;
+        border-radius: 4px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        z-index: 1000;
+        animation: slideIn 0.3s ease;
+    }
+    
+    @keyframes slideIn {
+        from { transform: translateX(100%); }
+        to { transform: translateX(0); }
+    }
+    
+    /* 控制面板样式 */
+    .control-header {
+        width: 100%;
+        padding: 15px;
+        background: #2196F3;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 15px;
+        transition: background 0.3s;
+    }
+    
+    .control-header:hover {
+        background: #1976D2;
+    }
+    
+    .control-header i {
+        transition: transform 0.3s;
+    }
+    
+    .control-header.active i {
+        transform: rotate(180deg);
+    }
+    
+    .control-content {
+        display: none;
+    }
+    
+    .control-content.show {
+        display: block;
+        animation: fadeIn 0.3s ease;
+    }
+    
+    .section-content {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 10px;
+    }
+    
+    .control-section {
+        margin-bottom: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+    }
+    
+    .control-section:last-child {
+        margin-bottom: 0;
+    }
+    
+    .control-section h3 {
+        color: #2196F3;
+        font-size: 16px;
+        margin: 0;
+        padding-bottom: 10px;
+    }
 </style>
 )rawliteral";
 

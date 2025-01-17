@@ -45,13 +45,15 @@ String createChartCard() {
 // 创建控制面板
 String createControlPanel() {
     String panel = "<div class='card'>";
-    panel += "<div class='card-header'>控制面板</div>";
-    panel += "<div class='control-panel'>";
+    panel += "<div class='control-header' onclick='toggleControlPanel(this)'>";
+    panel += "控制面板 <i>▼</i>";
+    panel += "</div>";
+    panel += "<div class='control-content'>";
 
     // 传感器控制区域
     panel += "<div class='control-section'>";
     panel += "<h3>传感器控制</h3>";
-    panel += "<div class='control-content'>";
+    panel += "<div class='section-content'>";
     // 传感器开关
     panel += "<div class='control-row'>";
     panel += "<label>传感器状态</label>";
@@ -75,7 +77,7 @@ String createControlPanel() {
     // UV警报设置区域
     panel += "<div class='control-section'>";
     panel += "<h3>UV警报设置</h3>";
-    panel += "<div class='control-content'>";
+    panel += "<div class='section-content'>";
     // 警报阈值设置
     panel += "<div class='control-row'>";
     panel += "<label>警报阈值</label>";
@@ -99,7 +101,7 @@ String createControlPanel() {
     // 数据管理区域
     panel += "<div class='control-section'>";
     panel += "<h3>数据管理</h3>";
-    panel += "<div class='control-content'>";
+    panel += "<div class='section-content'>";
     panel += "<div class='control-row'>";
     panel += "<label>选择日期</label>";
     panel += "<input type='date' id='date' class='form-input date-input'>";
@@ -121,32 +123,6 @@ String createHistoryCard() {
     card += "<div class='card-header'>历史记录</div>";
     card += "<div id='historicalData' style='max-height: 400px; overflow-y: auto;'></div>";
     card += "</div>";
-    return card;
-}
-
-// 创建警报设置卡片
-String createAlertSettingsCard() {
-    String card = "<div class='card'>";
-    card += "<div class='card-header'>UV警报设置</div>";
-    card += "<div class='alert-settings' style='padding: 20px;'>";
-    card += "<div style='display: flex; align-items: center; gap: 20px;'>";
-
-    // 警报阈值设置
-    card += "<div class='setting-item' style='display: flex; align-items: center;'>";
-    card += "<label style='margin-right: 10px;'>警报阈值：</label>";
-    card += "<input type='number' id='alertThreshold' value='" + String(uvAlertThreshold) + "' min='0' max='11' style='width: 60px; padding: 5px; border: 1px solid #ddd; border-radius: 4px;'>";
-    card += "<button onclick='setAlertThreshold()' class='btn' style='margin-left: 10px; padding: 5px 15px;'>设置</button>";
-    card += "</div>";
-
-    // 启用警报开关
-    card += "<div class='setting-item' style='display: flex; align-items: center;'>";
-    card += "<label style='display: flex; align-items: center;'>";
-    card += "<input type='checkbox' id='alertEnabled' " + String(alertEnabled ? "checked" : "") + " onchange='toggleAlert()' style='margin-right: 5px;'>";
-    card += "<span>启用警报</span>";
-    card += "</label>";
-    card += "</div>";
-
-    card += "</div></div></div>";
     return card;
 }
 

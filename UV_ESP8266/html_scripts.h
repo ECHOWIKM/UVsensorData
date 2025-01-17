@@ -15,27 +15,65 @@ const char HTML_SCRIPTS[] PROGMEM = R"rawliteral(
                     label: '传感器电压 (mV)',
                     data: [],
                     borderColor: '#2196F3',
-                    tension: 0.1
+                    tension: 0.1,
+                    fill: false
                 }]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: '电压 (mV)'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: '时间'
+                        }
+                    }
+                }
             }
         });
     }
 
     function loadData() {
         const date = document.getElementById('date').value;
+        console.log('请求日期:', date);
+        
         fetch('/data?date=' + date)
-            .then(response => response.json())
+            .then(response => {
+                console.log('响应状态:', response.status);
+                return response.json();
+            })
             .then(data => {
-                updateChart(data);
-                updateTable(data.table);
+                console.log('收到的数据:', data);
+                if(data.labels && data.data && data.table) {
+                    console.log('数据格式正确');
+                    console.log('标签数量:', data.labels.length);
+                    console.log('数据点数量:', data.data.length);
+                    console.log('表格行数:', data.table.length);
+                    updateChart(data);
+                    updateTable(data.table);
+                } else {
+                    console.error('数据格式不完整:', data);
+                }
+            })
+            .catch(error => {
+                console.error('加载数据错误:', error);
             });
     }
 
     function updateChart(data) {
+        if (!data || !data.labels || !data.data) {
+            console.error('数据格式错误:', data);
+            return;
+        }
+        
         chart.data.labels = data.labels;
         chart.data.datasets[0].data = data.data;
         chart.update();
@@ -46,6 +84,7 @@ const char HTML_SCRIPTS[] PROGMEM = R"rawliteral(
             document.getElementById('historicalData').innerHTML = '<p style="text-align: center; padding: 20px;">没有历史数据</p>';
             return;
         }
+        
         let html = '<table style="width:100%; border-collapse: collapse;">';
         html += `
             <thead>
@@ -62,30 +101,37 @@ const char HTML_SCRIPTS[] PROGMEM = R"rawliteral(
             const bgColor = index % 2 === 0 ? '#ffffff' : '#f8f9fa';
             let uvColor;
             let uvText;
+            let uvIcon = '☀️';
             
             // UV指数颜色和文本
             if (row.uv <= 2) {
                 uvColor = '#4CAF50';
                 uvText = '低';
+                uvIcon = '🌤️';
             } else if (row.uv <= 5) {
                 uvColor = '#FFC107';
                 uvText = '中等';
+                uvIcon = '⛅';
             } else if (row.uv <= 7) {
                 uvColor = '#FF9800';
                 uvText = '高';
+                uvIcon = '🌤️';
             } else if (row.uv <= 10) {
                 uvColor = '#F44336';
                 uvText = '很高';
+                uvIcon = '☀️';
             } else {
                 uvColor = '#9C27B0';
                 uvText = '极高';
+                uvIcon = '🌞';
             }
             
             html += `
                 <tr style="background: ${bgColor};">
                     <td style="padding: 12px; text-align: center; border-bottom: 1px solid #dee2e6;">${row.time}</td>
                     <td style="padding: 12px; text-align: center; border-bottom: 1px solid #dee2e6;">
-                        <span style="color: ${uvColor}; font-weight: bold;">${row.uv}</span>
+                        <span style="font-size: 20px;">${uvIcon}</span>
+                        <span style="color: ${uvColor}; font-weight: bold; margin-left: 5px;">${row.uv}</span>
                         <small style="color: #666; margin-left: 5px;">(${uvText})</small>
                     </td>
                     <td style="padding: 12px; text-align: center; border-bottom: 1px solid #dee2e6;">${row.voltage}</td>
@@ -146,13 +192,17 @@ const char HTML_SCRIPTS[] PROGMEM = R"rawliteral(
     }
 
     function showMessage(message) {
+        // 移除现有的警报消息
+        const existingMsg = document.querySelector('.alert-message');
+        if(existingMsg) existingMsg.remove();
+        
         const msgDiv = document.createElement('div');
         msgDiv.className = 'alert-message';
         msgDiv.textContent = message;
         
         const closeBtn = document.createElement('button');
         closeBtn.innerHTML = '×';
-        closeBtn.style.cssText = 'position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:white; font-size:20px; cursor:pointer;';
+        closeBtn.style.cssText = 'position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:white; font-size:24px; cursor:pointer;';
         closeBtn.onclick = function() { msgDiv.remove(); };
         msgDiv.appendChild(closeBtn);
         
@@ -200,6 +250,13 @@ const char HTML_SCRIPTS[] PROGMEM = R"rawliteral(
                 valueDiv.textContent = data.voltage;
             }
         }
+    }
+
+    // 修改控制面板切换函数
+    function toggleControlPanel(header) {
+        header.classList.toggle('active');
+        const content = header.nextElementSibling;
+        content.classList.toggle('show');
     }
 
     // 初始化
