@@ -15,8 +15,6 @@
  */
 
 #include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
 #include <ESP8266WiFi.h>
 #include <EEPROM.h>
 #include <ESP8266WebServer.h>
@@ -25,13 +23,9 @@
 #include <TimeLib.h>
 #include <LittleFS.h>
 #include <WebSocketsServer.h>
-
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
-#define OLED_RESET -1
-#define SCREEN_ADDRESS 0x3C
-
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+#include "html_template.h"
+#include "html_cards.h"
+#include "global_vars.h"
 
 const char* ssid = "sakaiwei";  // 替换为您的WiFi名称
 const char* password = "12345678";  // 替换为您的WiFi密码
@@ -54,18 +48,18 @@ int currentNtpServer = 0;
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "ntp.aliyun.com", 28800, 60000);  // 28800 = UTC+8
 
-// 全局变量
+// 全局变量定义（移除 extern 关键字）
 int sensorValue;
 long sum = 0;
 int vout = 0;
 int uv = 0;
-int darkValue = 0;  // 存储暗值
+int darkValue = 0;
 bool sensorEnabled = true;
-int readInterval = 10; // 默认10秒读取一次
+int readInterval = 10;
 unsigned long lastReadTime = 0;
 String currentDate = "";
-int uvAlertThreshold = 8;  // 默认警报阈值
-bool alertEnabled = true;  // 默认开启警报
+int uvAlertThreshold = 8;
+bool alertEnabled = true;
 
 // 数据记录结构
 struct UVRecord {
@@ -106,7 +100,7 @@ String getUVLevelText(int uvIndex) {
 // 添加时间转换辅助函数
 time_t getLocalTime() {
     time_t now = timeClient.getEpochTime();
-    return now - 28800; // 添加8小时偏移
+    return now; // 添加8小时偏移
 }
 
 void initializeLittleFS() {
@@ -114,47 +108,18 @@ void initializeLittleFS() {
     Serial.println("LittleFS挂载失败!");  
     Serial.println("正在尝试格式化文件系统...");
     
-    // 尝试格式化文件系统
     if(LittleFS.format()) {
       Serial.println("文件系统格式化成功");
-      // 重新尝试挂载
       if(LittleFS.begin()) {
         Serial.println("LittleFS挂载成功!");
       } else {
         Serial.println("LittleFS挂载仍然失败，请检查硬件!");
-        // 在OLED上显示错误信息
-        display.clearDisplay();
-        display.setTextSize(1);
-        display.setCursor(0,0);
-        display.println("FS Error!");
-        display.println("Check hardware");
-        display.display();
-        delay(2000);
       }
     } else {
       Serial.println("文件系统格式化失败!");
     }
   } else {
     Serial.println("LittleFS挂载成功!");
-    
-    // 检查文件系统信息
-    FSInfo fs_info;
-    LittleFS.info(fs_info);
-    Serial.println("文件系统信息:");
-    Serial.print("总空间: "); Serial.print(fs_info.totalBytes); Serial.println(" bytes");
-    Serial.print("已用空间: "); Serial.print(fs_info.usedBytes); Serial.println(" bytes");
-    Serial.print("块大小: "); Serial.print(fs_info.blockSize); Serial.println(" bytes");
-    Serial.print("页大小: "); Serial.print(fs_info.pageSize); Serial.println(" bytes");
-    
-    // 列出所有文件
-    Serial.println("\n当前文件列表:");
-    Dir dir = LittleFS.openDir("/");
-    while (dir.next()) {
-      Serial.print("文件: ");
-      Serial.print(dir.fileName());
-      Serial.print(" - 大小: ");
-      Serial.println(dir.fileSize());
-    }
   }
 }
 
@@ -211,27 +176,11 @@ void setup() {
   Serial.begin(9600);
   Serial.println("\n正在启动...");
   
-  // 初始化显示屏
-  if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
-    Serial.println(F("SSD1306初始化失败"));
-    for(;;);
-  }
-  
-  display.clearDisplay();
-  display.setTextColor(SSD1306_WHITE);
-  display.setTextSize(1);
-  display.println(F("系统启动中..."));
-  display.display();
-  
   // 初始化文件系统
   initializeLittleFS();
   
   // WiFi连接
-  display.clearDisplay();
-  display.setCursor(0,0);
-  display.println("连接WiFi中...");
-  display.display();
-  
+  Serial.println("连接WiFi中...");
   WiFi.begin(ssid, password);
   
   int wifiAttempts = 0;
@@ -245,16 +194,6 @@ void setup() {
     Serial.println("\nWiFi连接成功");
     Serial.print("IP地址: ");
     Serial.println(WiFi.localIP());
-    
-    display.clearDisplay();
-    display.setCursor(0,0);
-    display.println("WiFi已连接");
-    display.print("IP: ");
-    display.println(WiFi.localIP());
-    display.display();
-    
-    // 设置系统时间
-    configTime(28800, 0, "ntp.aliyun.com", "ntp1.aliyun.com");  // 28800 = UTC+8
     
     // 初始化NTP客户端
     timeClient.begin();
@@ -275,19 +214,13 @@ void setup() {
         Serial.println("NTP同步失败，将继续尝试...");
     }
     
-    // 在 WiFi 连接成功后，初始化 WebSocket
+    // 初始化 WebSocket
     webSocket.begin();
     webSocket.onEvent(webSocketEvent);
     
   } else {
     Serial.println("\nWiFi连接失败!");
-    display.clearDisplay();
-    display.setCursor(0,0);
-    display.println("WiFi连接失败!");
-    display.display();
   }
-  
-  delay(2000); // 显示状态信息
   
   // 初始化Web服务器
   server.on("/", handleRoot);
@@ -297,16 +230,8 @@ void setup() {
   server.on("/clear", handleClear);
   server.on("/time", handleTime);
   server.on("/uvdata", handleUVData);
-  server.on("/alert/settings", handleAlertSettings);  // 添加警报设置路由
+  server.on("/alert/settings", handleAlertSettings);
   server.begin();
-  
-  // 初始化传感器
-  display.clearDisplay();
-  display.setTextColor(SSD1306_WHITE);
-  display.setTextSize(1);
-  display.println(F("UV Sensor Test"));
-  display.println(F("Calibrating..."));
-  display.display();
   
   // 校准暗值
   sum = 0;
@@ -320,416 +245,20 @@ void setup() {
 }
 
 void handleRoot() {
-  String html = "<html><head>";
-  html += "<meta charset='UTF-8'>";
-  html += "<meta name='viewport' content='width=device-width, initial-scale=1.0'>";
-  html += "<title>UV环境监测</title>";
-  
-  // 添加Chart.js
-  html += "<script src='https://cdn.jsdelivr.net/npm/chart.js'></script>";
-  
-  // 添加样式
-  html += "<style>";
-  html += "* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; }";
-  html += "body { background: #f5f7fa; color: #333; padding: 20px; }";
-  html += ".container { max-width: 1200px; margin: 0 auto; }";
-  
-  // 卡片样式
-  html += ".card { background: white; border-radius: 15px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }";
-  html += ".card-header { font-size: 18px; color: #666; margin-bottom: 15px; }";
-  
-  // 网格布局
-  html += ".grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px; }";
-  
-  // 数据显示样式
-  html += ".data-box { text-align: center; padding: 20px; }";
-  html += ".data-value { font-size: 36px; font-weight: bold; margin: 10px 0; }";
-  html += ".data-label { color: #666; font-size: 14px; }";
-  
-  // 图表容器
-  html += ".chart-container { height: 300px; margin-top: 20px; }";
-  
-  // 开关样式
-  html += ".switch { position: relative; display: inline-block; width: 60px; height: 34px; }";
-  html += ".switch input { opacity: 0; width: 0; height: 0; }";
-  html += ".slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }";
-  html += ".slider:before { position: absolute; content: ''; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }";
-  html += "input:checked + .slider { background-color: #2196F3; }";
-  html += "input:checked + .slider:before { transform: translateX(26px); }";
-  
-  // 按钮样式
-  html += ".btn { background: #2196F3; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }";
-  html += ".btn:hover { background: #1976D2; }";
-  html += ".btn-danger { background: #f44336; }";
-  html += ".btn-danger:hover { background: #d32f2f; }";
-  
-  // 添加表格样式
-  html += "table { width: 100%; border-collapse: collapse; margin-top: 15px; }";
-  html += "th, td { padding: 12px; text-align: center; border-bottom: 1px solid #ddd; }";
-  html += "th { background-color: #f8f9fa; color: #666; }";
-  html += "tr:hover { background-color: #f5f5f5; }";
-  html += ".uv-value { font-weight: bold; padding: 4px 8px; border-radius: 4px; }";
-  html += ".uv-low { background-color: #4CAF50; color: white; }";
-  html += ".uv-moderate { background-color: #FFC107; color: black; }";
-  html += ".uv-high { background-color: #FF9800; color: white; }";
-  html += ".uv-very-high { background-color: #F44336; color: white; }";
-  html += ".uv-extreme { background-color: #9C27B0; color: white; }";
-  
-  // 添加时间样式
-  html += ".current-time { font-size: 16px; color: #666; text-align: right; }";
-  
-  // 添加警报设置样式
-  html += ".alert-settings { padding: 15px; }";
-  html += ".setting-item { display: flex; align-items: center; margin: 10px 0; }";
-  html += ".setting-item label { margin-right: 10px; }";
-  html += ".setting-item input[type='number'] { width: 60px; padding: 5px; border: 1px solid #ddd; border-radius: 4px; }";
-  html += ".setting-item button { margin-left: 10px; padding: 5px 15px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer; }";
-  html += ".setting-item button:hover { background: #1976D2; }";
-  html += ".setting-item input[type='checkbox'] { margin-right: 5px; }";
-  
-  html += "</style>";
-  
-  // JavaScript
-  html += "<script>";
-  
-  // 图表初始化函数
-  html += "function initCharts() {";
-  html += "  const ctx = document.getElementById('uvChart').getContext('2d');";
-  html += "  new Chart(ctx, {";
-  html += "    type: 'line',";
-  html += "    data: {";
-  html += "      labels: [],";
-  html += "      datasets: [{";
-  html += "        label: '传感器电压 (mV)',";
-  html += "        data: [],";
-  html += "        borderColor: '#2196F3',";
-  html += "        tension: 0.4";
-  html += "      }]";
-  html += "    },";
-  html += "    options: {";
-  html += "      responsive: true,";
-  html += "      maintainAspectRatio: false,";
-  html += "      plugins: {";
-  html += "        legend: { display: false },";
-  html += "        tooltip: {";
-  html += "          callbacks: {";
-  html += "            label: function(context) {";
-  html += "              const voltage = context.raw;";
-  html += "              const dataIndex = context.dataIndex;";
-  html += "              const chartData = document.querySelector('#historicalData table');";
-  html += "              if (chartData && chartData.rows[dataIndex + 1]) {";
-  html += "                const uvValue = chartData.rows[dataIndex + 1].cells[1].textContent;";
-  html += "                return [";
-  html += "                  '电压: ' + voltage + ' mV',";
-  html += "                  'UV指数: ' + uvValue";
-  html += "                ];";
-  html += "              }";
-  html += "              return '电压: ' + voltage + ' mV';";
-  html += "            }";
-  html += "          }";
-  html += "        }";
-  html += "      },";
-  html += "      scales: {";
-  html += "        y: {";
-  html += "          title: {";
-  html += "            display: true,";
-  html += "            text: '电压 (mV)'";
-  html += "          }";
-  html += "        }";
-  html += "      }";
-  html += "    }";
-  html += "  });";
-  html += "}";
-  
-  // 页面加载完成后初始化
-  html += "document.addEventListener('DOMContentLoaded', function() {";
-  html += "  initCharts();";
-  html += "  const today = new Date();";
-  html += "  document.getElementById('date').value = today.toISOString().split('T')[0];";
-  html += "  loadData();";
-  html += "});";
-  
-  // 添加前端JavaScript函数
-  
-  // 加载数据的函数
-  html += "function loadData() {";
-  html += "  const date = document.getElementById('date').value;";
-  html += "  if (!date) {";
-  html += "    alert('请选择日期');";
-  html += "    return;";
-  html += "  }";
-  html += "  console.log('Loading data for date:', date);";  // 添加调试日志
-  html += "  fetch('/data?date=' + date)";
-  html += "    .then(response => response.json())";
-  html += "    .then(data => {";
-  html += "      console.log('Received data:', data);";  // 添加调试日志
-  html += "      updateChart(data);";
-  html += "      updateTable(data.table);";
-  html += "    })";
-  html += "    .catch(error => {";
-  html += "      console.error('Error loading data:', error);";  // 添加错误处理
-  html += "      alert('加载数据失败，请重试');";
-  html += "    });";
-  html += "}";
-  
-  // 更新图表的函数
-  html += "function updateChart(data) {";
-  html += "  const chart = Chart.getChart('uvChart');";
-  html += "  if (chart) {";
-  html += "    chart.data.labels = data.labels;";
-  html += "    chart.data.datasets[0].data = data.data;";
-  html += "    chart.update();";
-  html += "  }";
-  html += "}";
-  
-  // 更新表格的函数
-  html += "function updateTable(data) {";
-  html += "  if (!data || data.length === 0) {";
-  html += "    document.getElementById('historicalData').innerHTML = '<p style=\"text-align: center; padding: 20px;\">没有历史数据</p>';";
-  html += "    return;";
-  html += "  }";
-  html += "  let html = '<table>';";
-  html += "  html += '<thead><tr><th>时间</th><th>UV指数</th><th>电压(mV)</th></tr></thead>';";
-  html += "  html += '<tbody>';";
-  html += "  data.forEach(row => {";
-  html += "    const uvClass = getUVClass(row.uv);";
-  html += "    html += `<tr>`;";
-  html += "    html += `<td>${row.time}</td>`;";
-  html += "    html += `<td><span class='uv-value ${uvClass}'>${row.uv}</span></td>`;";
-  html += "    html += `<td>${row.voltage || 'N/A'}</td>`;";  // 添加默认值处理
-  html += "    html += `</tr>`;";
-  html += "  });";
-  html += "  html += '</tbody></table>';";
-  html += "  document.getElementById('historicalData').innerHTML = html;";
-  html += "}";
-  
-  // 清除数据的函数
-  html += "function clearData() {";
-  html += "  if(confirm('确定要清除所有历史数据吗？')) {";
-  html += "    fetch('/clear').then(r=>r.json()).then(data => {";
-  html += "      alert(data.message);";
-  html += "      loadData();";
-  html += "    });";
-  html += "  }";
-  html += "}";
-  
-  // 切换传感器状态的函数
-  html += "function toggleSensor(element) {";
-  html += "  fetch('/toggle?state=' + element.checked)";
-  html += "    .then(r=>r.json())";
-  html += "    .then(data => {";
-  html += "      if(!data.success) element.checked = !element.checked;";
-  html += "    });";
-  html += "}";
-  
-  // 设置读取间隔的函数
-  html += "function setInterval() {";
-  html += "  const value = document.getElementById('interval').value;";
-  html += "  fetch('/interval?value=' + value)";
-  html += "    .then(r=>r.json())";
-  html += "    .then(data => {";
-  html += "      if(data.success) alert('间隔设置成功');";
-  html += "    });";
-  html += "}";
-  
-  // 添加 WebSocket 连接代码
-  html += "let ws = new WebSocket('ws://' + window.location.hostname + ':81/');";
-  html += "ws.onmessage = function(event) {";
-  html += "    const data = JSON.parse(event.data);";
-  html += "    if(data.type === 'alert') {";  // 处理警报消息
-  html += "        showMessage(data.message);";
-  html += "    } else {";  // 处理正常的数据更新
-  html += "        const dataBoxes = document.querySelectorAll('.grid .card .data-box');";
-  html += "        const uvBox = dataBoxes[0];";
-  html += "        uvBox.querySelector('.data-value').textContent = data.uv;";
-  html += "        uvBox.querySelector('.data-value').style.color = data.color;";
-  html += "        uvBox.querySelector('.data-label').textContent = data.level;";
-  html += "        dataBoxes[1].querySelector('.data-value').textContent = data.voltage;";
-  html += "        loadData();";
-  html += "    }";
-  html += "};";
-  html += "ws.onclose = function() {";
-  html += "    setTimeout(function() {";
-  html += "        ws = new WebSocket('ws://' + window.location.hostname + ':81/');";
-  html += "    }, 1000);";
-  html += "};";
-  
-  // 添加时间更新函数
-  html += "function updateCurrentTime() {";
-  html += "  fetch('/time')";
-  html += "    .then(response => response.text())";
-  html += "    .then(time => {";
-  html += "      document.getElementById('currentTime').textContent = time + ' 北京时间';";
-  html += "    });";
-  html += "}";
-  
-  // 设置定时器
-  html += "setInterval(updateCurrentTime, 1000);";  // 每秒更新一次
-  html += "updateCurrentTime();";  // 立即更新一次
-  
-  // 添加 UV 等级判断函数
-  html += "function getUVClass(uv) {";
-  html += "  if (uv <= 2) return 'uv-low';";
-  html += "  if (uv <= 5) return 'uv-moderate';";
-  html += "  if (uv <= 7) return 'uv-high';";
-  html += "  if (uv <= 10) return 'uv-very-high';";
-  html += "  return 'uv-extreme';";
-  html += "}";
-  
-  // 添加警报相关的JavaScript函数
-  html += "function setAlertThreshold() {";
-  html += "  const threshold = document.getElementById('alertThreshold').value;";
-  html += "  fetch('/alert/settings?threshold=' + threshold)";
-  html += "    .then(response => response.json())";
-  html += "    .then(data => {";
-  html += "      if(data.success) {";
-  html += "        showMessage('警报阈值已设置为 ' + threshold);";
-  html += "      }";
-  html += "    });";
-  html += "}";
-
-  html += "function toggleAlert() {";
-  html += "  const enabled = document.getElementById('alertEnabled').checked;";
-  html += "  fetch('/alert/settings?enabled=' + enabled)";
-  html += "    .then(response => response.json())";
-  html += "    .then(data => {";
-  html += "      if(data.success) {";
-  html += "        showMessage('警报已' + (enabled ? '启用' : '禁用'));";
-  html += "      }";
-  html += "    });";
-  html += "}";
-
-  html += "function showMessage(message) {";// 移除已有的警报消息";
-  html += "  const existingMsg = document.querySelector('.alert-message');";
-  html += "  if (existingMsg) existingMsg.remove();";
-  html += "  const msgDiv = document.createElement('div');";
-  html += "  msgDiv.className = 'alert-message';";
-  html += "  msgDiv.textContent = message;";
-  html += "  document.body.appendChild(msgDiv);";// 添加关闭按钮";
-  html += "  const closeBtn = document.createElement('button');";
-  html += "  closeBtn.innerHTML = '×';";
-  html += "  closeBtn.style.cssText = 'position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:white; font-size:20px; cursor:pointer;';";
-  html += "  closeBtn.onclick = function() { msgDiv.remove(); };";
-  html += "  msgDiv.appendChild(closeBtn);";// 播放警报声音";
-  html += "  new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBkCY2e/GdSgFKHzK8N2NOwgWZLnv6KJQDgtMpuPzuWYdBT2V1/LJeCoFJHfG8OGRPwgTYbbw66VTDghIo+H2vGke').play();";
-  html += "}";
-  
-  html += "</script>";
-  html += "</head><body>";
-  
-  // HTML结构
-  html += "<div class='container'>";
-  
-  // 顶部状态卡片
-  html += "<div class='grid'>";
-  
-  // UV指数卡片
-  html += "<div class='card'>";
-  html += "<div class='card-header'>UV指数</div>";
-  html += "<div class='data-box'>";
-  html += "<div class='data-value' style='color: " + getUVLevelColor(uv) + "'>" + String(uv) + "</div>";
-  html += "<div class='data-label'>" + getUVLevelText(uv) + "</div>";
-  html += "</div>";
-  html += "</div>";
-  
-  // 电压值卡片
-  html += "<div class='card'>";
-  html += "<div class='card-header'>传感器电压</div>";
-  html += "<div class='data-box'>";
-  html += "<div class='data-value'>" + String(vout) + "</div>";
-  html += "<div class='data-label'>mV</div>";
-  html += "</div>";
-  html += "</div>";
-  
-  // 时间卡片
-  html += "<div class='card'>";
-  html += "<div class='card-header'>当前时间</div>";
-  html += "<div class='data-box'>";
-  html += "<div class='data-value' style='font-size: 24px'>" + getFormattedDateTime() + "</div>";
-  html += "<div class='data-label'>北京时间</div>";
-  html += "</div>";
-  html += "</div>";
-  
-  html += "</div>";
-  
-  // 图表卡片
-  html += "<div class='card'>";
-  html += "<div class='card-header'>传感器电压趋势</div>";
-  html += "<div class='chart-container'>";
-  html += "<canvas id='uvChart'></canvas>";
-  html += "</div>";
-  html += "</div>";
-  
-  // 控制面板卡片
-  html += "<div class='card'>";
-  html += "<div class='card-header'>控制面板</div>";
-  html += "<div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; padding: 20px;'>";
-  
-  // 传感器开关
-  html += "<div>";
-  html += "<label class='switch'>";
-  html += "<input type='checkbox' " + String(sensorEnabled ? "checked" : "") + " onchange='toggleSensor(this)'>";
-  html += "<span class='slider'></span>";
-  html += "</label>";
-  html += "<span style='margin-left: 10px'>传感器状态</span>";
-  html += "</div>";
-  
-  // 读取间隔设置
-  html += "<div>";
-  html += "<input type='number' id='interval' value='" + String(readInterval) + "' min='1' style='width: 80px; padding: 5px;'>";
-  html += "<button class='btn' onclick='setInterval()' style='margin-left: 10px'>设置间隔(秒)</button>";
-  html += "</div>";
-  
-  // 日期选择
-  html += "<div>";
-  html += "<input type='date' id='date' style='padding: 5px;'>";
-  html += "<button class='btn' onclick='loadData()' style='margin-left: 10px'>查看历史</button>";
-  html += "</div>";
-  
-  // 清除数据按钮
-  html += "<div>";
-  html += "<button class='btn btn-danger' onclick='clearData()'>清除历史数据</button>";
-  html += "</div>";
-  
-  html += "</div>";
-  html += "</div>";
-  
-  // 历史记录卡片
-  html += "<div class='card'>";
-  html += "<div class='card-header'>历史记录</div>";
-  html += "<div id='historicalData' style='max-height: 400px; overflow-y: auto;'></div>";
-  html += "</div>";
-  
-  // UV警报设置卡片（独立的卡片）
-  html += "<div class='card'>";
-  html += "<div class='card-header'>UV警报设置</div>";
-  html += "<div class='alert-settings' style='padding: 20px;'>";
-  html += "<div style='display: flex; align-items: center; gap: 20px;'>";
-  
-  // 警报阈值设置
-  html += "<div class='setting-item' style='display: flex; align-items: center;'>";
-  html += "<label style='margin-right: 10px;'>警报阈值：</label>";
-  html += "<input type='number' id='alertThreshold' value='" + String(uvAlertThreshold) + "' min='0' max='11' style='width: 60px; padding: 5px; border: 1px solid #ddd; border-radius: 4px;'>";
-  html += "<button onclick='setAlertThreshold()' class='btn' style='margin-left: 10px; padding: 5px 15px;'>设置</button>";
-  html += "</div>";
-  
-  // 启用警报开关
-  html += "<div class='setting-item' style='display: flex; align-items: center;'>";
-  html += "<label style='display: flex; align-items: center;'>";
-  html += "<input type='checkbox' id='alertEnabled' " + String(alertEnabled ? "checked" : "") + " onchange='toggleAlert()' style='margin-right: 5px;'>";
-  html += "<span>启用警报</span>";
-  html += "</label>";
-  html += "</div>";
-  
-  html += "</div>";
-  html += "</div>";
-  html += "</div>";
-  
-  html += "</div>";
-  html += "<div class='current-time' id='currentTime'></div>";
-  html += "</body></html>";
-  
-  server.send(200, "text/html", html);
+    String html = FPSTR(HTML_HEAD);
+    html += FPSTR(HTML_STYLES);
+    html += FPSTR(HTML_BODY_START);
+    
+    // 添加动态内容
+    html += createStatusCards();
+    html += createChartCard();
+    html += createControlPanel();
+    html += createHistoryCard();
+    
+    html += FPSTR(HTML_SCRIPTS);
+    html += FPSTR(HTML_BODY_END);
+    
+    server.send(200, "text/html", html);
 }
 
 void handleToggle() {
@@ -773,6 +302,8 @@ void saveUVData() {
             timeinfo->tm_mon + 1,
             timeinfo->tm_mday);
             
+    Serial.println("保存到文件: " + String(filename));
+            
     File file = LittleFS.open(filename, "a");
     if(!file) {
         Serial.println("打开文件失败!");
@@ -780,82 +311,115 @@ void saveUVData() {
     }
     
     // 保存时间戳、UV值和电压值
-    String dataLine = String(localTime) + "," + String(uv) + "," + String(vout);
-    if(file.println(dataLine)) {
+    String dataLine = String(localTime) + "," + String(uv) + "," + String(vout) + "\n";
+    
+    if(file.print(dataLine)) {
         Serial.println("数据已保存: " + dataLine);
     } else {
         Serial.println("写入数据失败!");
     }
+    
     file.close();
 }
 
 void handleData() {
-  if(!server.hasArg("date")) {
-    server.send(400, "text/plain", "需要日期参数");
-    return;
-  }
-
-  String requestDate = server.arg("date");
-  requestDate.replace("-", "");
-  String filename = "/" + requestDate + ".txt";
-  
-  if(!LittleFS.exists(filename)) {
-    // 返回空数据的JSON格式
-    server.send(200, "application/json", "{\"labels\":[],\"data\":[]}");
-    return;
-  }
-
-  File file = LittleFS.open(filename, "r");
-  if(!file) {
-    server.send(500, "text/plain", "无法读取文件");
-    return;
-  }
-
-  // 准备JSON数据
-  String jsonResponse = "{\"labels\":[],\"data\":[],\"table\":[]}";
-  String labels = "";
-  String data = "";
-  String tableData = "";
-  
-  while(file.available()) {
-    String line = file.readStringUntil('\n');
-    if(line.length() > 0) {
-      int firstComma = line.indexOf(',');
-      int secondComma = line.indexOf(',', firstComma + 1);
-      if(firstComma > 0 && secondComma > 0) {
-        String timestamp = line.substring(0, firstComma);
-        String uvValue = line.substring(firstComma + 1, secondComma);
-        String voltageValue = line.substring(secondComma + 1);
-        
-        // 转换时间戳为可读格式
-        time_t ts = timestamp.toInt();
-        struct tm * timeinfo = localtime(&ts);
-        char timeStr[20];
-        sprintf(timeStr, "%02d:%02d:%02d", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
-        
-        // 添加到数组
-        if(labels.length() > 0) {
-          labels += ",";
-          data += ",";
-          tableData += ",";
-        }
-        labels += "\"" + String(timeStr) + "\"";
-        data += voltageValue;  // 图表显示电压值
-        
-        // 为表格准备完整时间格式
-        char fullTimeStr[30];
-        sprintf(fullTimeStr, "%d年%d月%d日 %02d:%02d:%02d",
-                timeinfo->tm_year + 1900, timeinfo->tm_mon + 1, timeinfo->tm_mday,
-                timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
-        tableData += "{\"time\":\"" + String(fullTimeStr) + "\",\"uv\":" + uvValue + ",\"voltage\":" + voltageValue + "}";  // 添加电压值
-      }
+    if(!server.hasArg("date")) {
+        Serial.println("错误：缺少日期参数");
+        server.send(400, "text/plain", "需要日期参数");
+        return;
     }
-  }
-  file.close();
 
-  // 构建完整的JSON响应
-  jsonResponse = "{\"labels\":[" + labels + "],\"data\":[" + data + "],\"table\":[" + tableData + "]}";
-  server.send(200, "application/json", jsonResponse);
+    String requestDate = server.arg("date");
+    requestDate.replace("-", "");
+    String filename = "/" + requestDate + ".txt";
+    
+    Serial.println("请求的文件名: " + filename);
+    
+    if(!LittleFS.exists(filename)) {
+        Serial.println("文件不存在: " + filename);
+        server.send(200, "application/json", "{\"labels\":[],\"data\":[],\"table\":[]}");
+        return;
+    }
+
+    File file = LittleFS.open(filename, "r");
+    if(!file) {
+        Serial.println("无法打开文件: " + filename);
+        server.send(500, "text/plain", "无法读取文件");
+        return;
+    }
+
+    Serial.println("成功打开文件");
+
+    // 准备JSON数据
+    String labels = "[";
+    String data = "[";
+    String tableData = "[";
+    bool first = true;
+    int lineCount = 0;
+
+    while(file.available()) {
+        String line = file.readStringUntil('\n');
+        line.trim();
+        if(line.length() > 0) {
+            Serial.println("读取行: " + line);
+            int firstComma = line.indexOf(',');
+            int secondComma = line.indexOf(',', firstComma + 1);
+            
+            if(firstComma > 0 && secondComma > 0) {
+                time_t timestamp = line.substring(0, firstComma).toInt();
+                String uvValue = line.substring(firstComma + 1, secondComma);
+                String voltageValue = line.substring(secondComma + 1);
+                voltageValue.trim();
+                
+                Serial.println("解析数据 - 时间戳: " + String(timestamp) + 
+                             ", UV: " + uvValue + 
+                             ", 电压: " + voltageValue);
+                
+                // 转换时间戳为可读格式
+                struct tm * timeinfo;
+                timeinfo = localtime(&timestamp);
+                char timeStr[20];
+                sprintf(timeStr, "%02d:%02d:%02d",
+                        timeinfo->tm_hour,
+                        timeinfo->tm_min,
+                        timeinfo->tm_sec);
+                
+                if(!first) {
+                    labels += ",";
+                    data += ",";
+                    tableData += ",";
+                }
+                
+                labels += "\"" + String(timeStr) + "\"";
+                data += voltageValue;
+                
+                // 构建表格数据
+                tableData += "{\"time\":\"" + String(timeStr) + "\",";
+                tableData += "\"uv\":" + uvValue + ",";
+                tableData += "\"voltage\":" + voltageValue + "}";
+                
+                first = false;
+                lineCount++;
+            }
+        }
+    }
+    
+    labels += "]";
+    data += "]";
+    tableData += "]";
+    
+    file.close();
+    
+    Serial.println("处理了 " + String(lineCount) + " 行数据");
+    
+    // 构建完整的JSON响应
+    String jsonResponse = "{\"labels\":" + labels + ",";
+    jsonResponse += "\"data\":" + data + ",";
+    jsonResponse += "\"table\":" + tableData + "}";
+
+    Serial.println("发送的JSON数据: " + jsonResponse);
+    
+    server.send(200, "application/json", jsonResponse);
 }
 
 int getFilteredValue() {
@@ -965,11 +529,11 @@ void handleAlertSettings() {
 
 void loop() {
     server.handleClient();
-    webSocket.loop();  // 处理 WebSocket 事件
+    webSocket.loop();
     
     // 定期更新时间
     static unsigned long lastNtpUpdate = 0;
-    if (millis() - lastNtpUpdate >= 60000) { // 每分钟更新一次
+    if (millis() - lastNtpUpdate >= 60000) {
         timeClient.update();
         lastNtpUpdate = millis();
     }
@@ -981,19 +545,8 @@ void loop() {
         delay(5000);
         if(WiFi.status() == WL_CONNECTED) {
             Serial.println("WiFi重连成功");
-            syncNTP(); // WiFi重连后重新同步时间
+            syncNTP();
         }
-    }
-    
-    // 确保时间同步
-    if (millis() % 60000 == 0) { // 每分钟更新一次时间
-        timeClient.forceUpdate();
-    }
-    
-    // 更新当前日期
-    String newDate = String(timeClient.getEpochTime() / 86400L * 86400L);
-    if(newDate != currentDate) {
-        currentDate = newDate;
     }
     
     if(sensorEnabled && (millis() - lastReadTime >= readInterval * 1000)) {
@@ -1025,38 +578,7 @@ void loop() {
         else if (vout < 1079) uv = 10;
         else uv = 11;
 
-        saveUVData();
-        lastReadTime = millis();
-
-        // OLED显示更新
-        display.clearDisplay();
-        
-        display.setTextSize(1);
-        display.setCursor(0,0);
-        display.print("Voltage: ");
-        display.print(vout);
-        display.println("mV");
-        
-        display.setTextSize(2);
-        display.setCursor(0,16);
-        display.print("UV:");
-        display.println(uv);
-        
-        display.drawRect(0, 45, display.width(), 10, SSD1306_WHITE);
-        int barLength = map(uv, 0, 11, 0, display.width());
-        display.fillRect(0, 45, barLength, 10, SSD1306_WHITE);
-        
-        display.setTextSize(1);
-        display.setCursor(0, 56);
-        if(uv <= 2) display.print("Low");
-        else if(uv <= 5) display.print("Moderate");
-        else if(uv <= 7) display.print("High");
-        else if(uv <= 10) display.print("Very High");
-        else display.print("Extreme");
-        
-        display.display();
-        
-        // 先发送正常的数据更新
+        // 发送实时数据更新
         String jsonData = "{";
         jsonData += "\"uv\":" + String(uv) + ",";
         jsonData += "\"voltage\":" + String(vout) + ",";
@@ -1065,13 +587,17 @@ void loop() {
         jsonData += "}";
         webSocket.broadcastTXT(jsonData);
         
-        // 如果需要，再发送警报消息
+        // 如果需要，发送警报消息
         if(alertEnabled && uv >= uvAlertThreshold) {
-            delay(100);  // 短暂延迟确保消息不会冲突
+            delay(100);
             String alertMsg = "{\"type\":\"alert\",\"message\":\"警告：UV指数已达到 " + String(uv);
             alertMsg += "，超过警报阈值 " + String(uvAlertThreshold) + "！请注意防护。\"}";
             webSocket.broadcastTXT(alertMsg);
         }
+        
+        // 保存数据到文件
+        saveUVData();
+        lastReadTime = millis();
     }
     
     delay(100);
