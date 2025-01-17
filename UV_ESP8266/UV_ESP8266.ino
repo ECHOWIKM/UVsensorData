@@ -160,6 +160,52 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
     }
 }
 
+void handleExportCSV() {
+    String csvData = "时间戳,UV值,电压值\n";  // CSV 表头
+
+    // 遍历文件系统，读取所有的 .txt 文件
+    Dir dir = LittleFS.openDir("/");
+    while (dir.next()) {
+        String fileName = dir.fileName();
+        if (fileName.endsWith(".txt")) {
+            File file = LittleFS.open("/" + fileName, "r");
+            if (file) {
+                while (file.available()) {
+                    String line = file.readStringUntil('\n');
+                    // 解析时间戳、UV值和电压值
+                    int firstComma = line.indexOf(',');
+                    int secondComma = line.indexOf(',', firstComma + 1);
+                    
+                    if (firstComma > 0 && secondComma > 0) {
+                        time_t timestamp = line.substring(0, firstComma).toInt();
+                        int uvValue = line.substring(firstComma + 1, secondComma).toInt();
+                        int voltageValue = line.substring(secondComma + 1).toInt();
+
+                        // 转换时间戳为可读格式
+                        struct tm * timeinfo = localtime(&timestamp);
+                        char dateStr[30];
+                        sprintf(dateStr, "%04d-%02d-%02d %02d:%02d:%02d", 
+                                timeinfo->tm_year + 1900, 
+                                timeinfo->tm_mon + 1, 
+                                timeinfo->tm_mday,
+                                timeinfo->tm_hour,
+                                timeinfo->tm_min,
+                                timeinfo->tm_sec);
+                        
+                        // 添加到 CSV 数据中
+                        csvData += String(dateStr) + "," + String(uvValue) + "," + String(voltageValue) + "\n";
+                    }
+                }
+                file.close();
+            }
+        }
+    }
+
+    // 设置响应头，告知浏览器这是一个 CSV 文件
+    server.sendHeader("Content-Disposition", "attachment; filename=data.csv");
+    server.send(200, "text/csv", csvData);  // 发送 CSV 数据
+}
+
 void setup() {
   Serial.begin(9600);
   Serial.println("\n正在启动...");
@@ -220,6 +266,7 @@ void setup() {
   server.on("/time", handleTime);
   server.on("/uvdata", handleUVData);
   server.on("/alert/settings", handleAlertSettings);
+  server.on("/export", handleExportCSV);
   server.begin();
   
   // 校准暗值
@@ -525,6 +572,22 @@ void handleAlertSettings() {
     server.send(200, "application/json", response);
 }
 
+// 添加存储监控的阈值
+const int STORAGE_WARNING_THRESHOLD = 100 * 1024; // 100KB
+
+void checkStorage() {
+    FSInfo fs_info;
+    LittleFS.info(fs_info);
+    int availableSpace = fs_info.totalBytes - fs_info.usedBytes;
+
+    if (availableSpace < STORAGE_WARNING_THRESHOLD) {
+        Serial.println("警告：存储空间不足，请清理旧数据！");
+        // 触发警报消息
+        String alertMsg = "{\"type\":\"alert\",\"message\":\"存储空间不足！可用空间: " + String(availableSpace) + " bytes\"}";
+        webSocket.broadcastTXT(alertMsg);
+    }
+}
+
 void loop() {
     server.handleClient();
     webSocket.loop();
@@ -535,6 +598,9 @@ void loop() {
         timeClient.update();
         lastNtpUpdate = millis();
     }
+    
+    // 检查存储空间
+    checkStorage();
     
     // 如果WiFi断开，尝试重连
     if(WiFi.status() != WL_CONNECTED) {
