@@ -371,9 +371,9 @@ void handleRoot() {
   html += "  new Chart(ctx, {";
   html += "    type: 'line',";
   html += "    data: {";
-  html += "      labels: [],"; // 将从后端获取数据
+  html += "      labels: [],";
   html += "      datasets: [{";
-  html += "        label: 'UV指数',";
+  html += "        label: '传感器电压 (mV)',";
   html += "        data: [],";
   html += "        borderColor: '#2196F3',";
   html += "        tension: 0.4";
@@ -382,7 +382,15 @@ void handleRoot() {
   html += "    options: {";
   html += "      responsive: true,";
   html += "      maintainAspectRatio: false,";
-  html += "      plugins: { legend: { display: false } }";
+  html += "      plugins: { legend: { display: false } },";
+  html += "      scales: {";
+  html += "        y: {";
+  html += "          title: {";
+  html += "            display: true,";
+  html += "            text: '电压 (mV)'";
+  html += "          }";
+  html += "        }";
+  html += "      }";
   html += "    }";
   html += "  });";
   html += "}";
@@ -516,7 +524,7 @@ void handleRoot() {
   
   // 图表卡片
   html += "<div class='card'>";
-  html += "<div class='card-header'>UV指数趋势</div>";
+  html += "<div class='card-header'>传感器电压趋势</div>";
   html += "<div class='chart-container'>";
   html += "<canvas id='uvChart'></canvas>";
   html += "</div>";
@@ -615,8 +623,8 @@ void saveUVData() {
         return;
     }
     
-    // 保存本地时间戳和UV值
-    String dataLine = String(localTime) + "," + String(uv);
+    // 保存时间戳、UV值和电压值
+    String dataLine = String(localTime) + "," + String(uv) + "," + String(vout);
     if(file.println(dataLine)) {
         Serial.println("数据已保存: " + dataLine);
     } else {
@@ -656,10 +664,12 @@ void handleData() {
   while(file.available()) {
     String line = file.readStringUntil('\n');
     if(line.length() > 0) {
-      int commaIndex = line.indexOf(',');
-      if(commaIndex > 0) {
-        String timestamp = line.substring(0, commaIndex);
-        String uvValue = line.substring(commaIndex + 1);
+      int firstComma = line.indexOf(',');
+      int secondComma = line.indexOf(',', firstComma + 1);
+      if(firstComma > 0 && secondComma > 0) {
+        String timestamp = line.substring(0, firstComma);
+        String uvValue = line.substring(firstComma + 1, secondComma);
+        String voltageValue = line.substring(secondComma + 1);
         
         // 转换时间戳为可读格式
         time_t ts = timestamp.toInt();
@@ -674,14 +684,14 @@ void handleData() {
           tableData += ",";
         }
         labels += "\"" + String(timeStr) + "\"";
-        data += uvValue;
+        data += voltageValue;  // 图表显示电压值
         
         // 为表格准备完整时间格式
         char fullTimeStr[30];
         sprintf(fullTimeStr, "%d年%d月%d日 %02d:%02d:%02d",
                 timeinfo->tm_year + 1900, timeinfo->tm_mon + 1, timeinfo->tm_mday,
                 timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
-        tableData += "{\"time\":\"" + String(fullTimeStr) + "\",\"uv\":" + uvValue + "}";
+        tableData += "{\"time\":\"" + String(fullTimeStr) + "\",\"uv\":" + uvValue + "}";  // 表格仍显示 UV 值
       }
     }
   }
