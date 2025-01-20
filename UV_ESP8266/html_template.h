@@ -78,7 +78,6 @@ const char HTML_HELP_BUTTON[] PROGMEM = R"rawliteral(
 </style>
 <button class="help-button" onclick="toggleHelp()">帮助</button>
 <div class="help-modal" id="helpModal">
-    <img src="logo.png" class="watermark" alt="公司Logo">
     <h2>传感器说明</h2>
     <p>这是一个 UV 传感器，用于测量紫外线强度。它可以帮助用户了解紫外线的水平，从而采取适当的防护措施。</p>
     <h3>电压等级含义范围</h3>

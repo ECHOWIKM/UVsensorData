@@ -27,6 +27,8 @@
 #include <WebSocketsServer.h>
 #include "html_template.h"
 #include "html_cards.h"
+#include <ESP8266HTTPClient.h>
+#include <WiFiClientSecure.h>
 
 const char* ssid = "sakaiwei";  // 替换为您的WiFi名称
 const char* password = "12345678";  // 替换为您的WiFi密码
@@ -58,7 +60,11 @@ struct UVRecord {
 // 声明校准系数变量
 float calibrationFactor;  // 校准系数
 
-// 获取UV等级对应的颜色
+/*******************************************************************************
+* 函 数 名         : getUVLevelColor
+* 函数功能		   : 获取UV等级对应的颜色
+*******************************************************************************/	
+
 String getUVLevelColor(int uvIndex) {
   if(uvIndex <= 2) {
     return "#4CAF50"; // 绿色
@@ -73,7 +79,11 @@ String getUVLevelColor(int uvIndex) {
   }
 }
 
-// 获取UV等级对应的文本描述
+/*******************************************************************************
+* 函 数 名         : getUVLevelText
+* 函数功能		   : 获取UV等级对应的文本描述
+*******************************************************************************/	
+
 String getUVLevelText(int uvIndex) {
   if(uvIndex <= 2) {
     return "低";
@@ -88,11 +98,20 @@ String getUVLevelText(int uvIndex) {
   }
 }
 
-// 添加时间转换辅助函数
+/*******************************************************************************
+* 函 数 名         : getLocalTime
+* 函数功能		   : 获取本地时间
+*******************************************************************************/	
+
 time_t getLocalTime() {
     time_t now = timeClient.getEpochTime();
     return now; // 添加8小时偏移
 }
+
+/*******************************************************************************
+* 函 数 名         : initializeLittleFS
+* 函数功能		   : 初始化文件系统
+*******************************************************************************/	
 
 void initializeLittleFS() {
   if(!LittleFS.begin()) {
@@ -114,7 +133,11 @@ void initializeLittleFS() {
   }
 }
 
-// 添加NTP同步函数
+/*******************************************************************************
+* 函 数 名         : syncNTP
+* 函数功能		   : NTP同步
+*******************************************************************************/	
+
 bool syncNTP() {
   Serial.println("正在同步NTP时间...");
   
@@ -148,7 +171,11 @@ bool syncNTP() {
   return false;
 }
 
-// 添加 WebSocket 事件处理函数
+/*******************************************************************************
+* 函 数 名         : webSocketEvent
+* 函数功能		   : WebSocket 事件处理函数
+*******************************************************************************/	
+
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length) {
     switch(type) {
         case WStype_DISCONNECTED:
@@ -162,6 +189,11 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
             break;
     }
 }
+
+/*******************************************************************************
+* 函 数 名         : handleExportCSV
+* 函数功能		   : 导出CSV
+*******************************************************************************/	
 
 void handleExportCSV() {
     String csvData = "时间戳,UV值,电压值\n";  // CSV 表头
@@ -208,6 +240,11 @@ void handleExportCSV() {
     server.sendHeader("Content-Disposition", "attachment; filename=data.csv");
     server.send(200, "text/csv", csvData);  // 发送 CSV 数据
 }
+
+/*******************************************************************************
+* 函 数 名         : setup
+* 函数功能		   : 初始化
+*******************************************************************************/	
 
 void setup() {
   Serial.begin(9600);
@@ -286,6 +323,11 @@ void setup() {
   autoCalibrate();
 }
 
+/*******************************************************************************
+* 函 数 名         : handleRoot
+* 函数功能		   : 主页
+*******************************************************************************/	
+
 void handleRoot() {
     String html = FPSTR(HTML_HEAD);
     html += FPSTR(HTML_STYLES);
@@ -306,6 +348,11 @@ void handleRoot() {
     server.send(200, "text/html", html);
 }
 
+/*******************************************************************************
+* 函 数 名         : handleToggle
+* 函数功能		   : 切换传感器状态
+*******************************************************************************/	
+
 void handleToggle() {
   if(server.hasArg("state")) {
     sensorEnabled = (server.arg("state") == "true");
@@ -315,6 +362,11 @@ void handleToggle() {
     server.send(400, "text/plain", "缺少状态参数");
   }
 }
+
+/*******************************************************************************
+* 函 数 名         : handleInterval
+* 函数功能		   : 设置读取间隔
+*******************************************************************************/	
 
 void handleInterval() {
   if(server.hasArg("value")) {
@@ -330,6 +382,11 @@ void handleInterval() {
     server.send(400, "text/plain", "缺少间隔参数");
   }
 }
+
+/*******************************************************************************
+* 函 数 名         : saveUVData
+* 函数功能		   : 保存UV数据
+*******************************************************************************/	
 
 void saveUVData() {
     if(!timeClient.isTimeSet()) {
@@ -366,6 +423,11 @@ void saveUVData() {
     
     file.close();
 }
+
+/*******************************************************************************
+* 函 数 名         : handleData
+* 函数功能		   : 获取数据
+*******************************************************************************/	
 
 void handleData() {
     if(!server.hasArg("date")) {
@@ -476,6 +538,11 @@ void handleData() {
     server.send(200, "application/json", jsonResponse);
 }
 
+/*******************************************************************************
+* 函 数 名         : getFilteredValue
+* 函数功能		   : 获取滤波后的值
+*******************************************************************************/	
+
 int getFilteredValue() {
   int values[10];
   int sum = 0;
@@ -493,6 +560,11 @@ int getFilteredValue() {
   return (sum - max_value - min_value) / 8;
 }
 
+/*******************************************************************************
+* 函 数 名         : handleClear
+* 函数功能		   : 清除数据
+*******************************************************************************/	
+
 void handleClear() {
   Dir dir = LittleFS.openDir("/");
   int filesDeleted = 0;
@@ -508,12 +580,20 @@ void handleClear() {
   server.send(200, "application/json", response);
 }
 
-// 添加新的处理函数用于获取当前时间
+/*******************************************************************************
+* 函 数 名         : handleTime
+* 函数功能		   : 获取当前时间
+*******************************************************************************/	
+
 void handleTime() {
   server.send(200, "text/plain", getFormattedDateTime());
 }
 
-// 添加新的处理函数用于获取UV数据
+/*******************************************************************************
+* 函 数 名         : handleUVData
+* 函数功能		   : 获取UV数据
+*******************************************************************************/	
+
 void handleUVData() {
   String jsonResponse = "{";
   jsonResponse += "\"uv\":" + String(uv) + ",";
@@ -525,7 +605,11 @@ void handleUVData() {
   server.send(200, "application/json", jsonResponse);
 }
 
-// 添加自动清理旧文件的功能
+/*******************************************************************************
+* 函 数 名         : cleanOldFiles
+* 函数功能		   : 自动清理旧文件
+*******************************************************************************/	
+
 void cleanOldFiles(int daysToKeep = 7) {
   Dir dir = LittleFS.openDir("/");
   time_t now = timeClient.getEpochTime();
@@ -545,7 +629,11 @@ void cleanOldFiles(int daysToKeep = 7) {
   }
 }
 
-// 修改格式化时间函数
+/*******************************************************************************
+* 函 数 名         : getFormattedDateTime
+* 函数功能		   : 格式化时间
+*******************************************************************************/	
+
 String getFormattedDateTime() {
     if(!timeClient.isTimeSet()) {
         return "等待时间同步...";
@@ -567,7 +655,11 @@ String getFormattedDateTime() {
     return String(buffer);
 }
 
-// 添加处理警报设置的函数
+/*******************************************************************************
+* 函 数 名         : handleAlertSettings
+* 函数功能		   : 处理警报设置
+*******************************************************************************/	
+
 void handleAlertSettings() {
     if(server.hasArg("threshold")) {
         uvAlertThreshold = server.arg("threshold").toInt();
@@ -581,7 +673,11 @@ void handleAlertSettings() {
     server.send(200, "application/json", response);
 }
 
-// 添加存储监控的阈值
+/*******************************************************************************
+* 函 数 名         : checkStorage
+* 函数功能		   : 存储监控
+*******************************************************************************/	
+
 const int STORAGE_WARNING_THRESHOLD = 100 * 1024; // 100KB
 
 void checkStorage() {
@@ -596,6 +692,11 @@ void checkStorage() {
         webSocket.broadcastTXT(alertMsg);
     }
 }
+
+/*******************************************************************************
+* 函 数 名         : autoCalibrate
+* 函数功能		   : 自动校准
+*******************************************************************************/	
 
 void autoCalibrate() {
     Serial.println("开始自动校准...");
@@ -625,6 +726,47 @@ void autoCalibrate() {
     Serial.print("校准系数: ");
     Serial.println(calibrationFactor);
 }
+
+/*******************************************************************************
+* 函 数 名         : sendPushNotification
+* 函数功能		   : 发送推送通知（有效期至2025-02-19）
+*******************************************************************************/	
+
+const char* pushoverUserKey = "uu6hr4qvyhyabvyr5pd1e5f1w4ppah"; // Pushover 用户密钥
+const char* pushoverApiToken = "awvxpitf4w5jebp7u7v8ynewoi9egj"; // Pushover API 密钥
+
+void sendPushNotification(int uvIndex) {
+    WiFiClientSecure client;  // 创建 WiFiClientSecure 对象
+    HTTPClient http;
+    String url = "https://api.pushover.net/1/messages.json";
+    
+    client.setInsecure();  // 不验证 SSL 证书（不推荐用于生产环境）
+    http.begin(client, url);  // 使用 WiFiClientSecure 对象
+    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+    
+    String payload = "token=" + String(pushoverApiToken) + "&user=" + String(pushoverUserKey) +
+                     "&message=警报：UV 指数已达到 " + String(uvIndex) + "，超过设定阈值，请注意防护。";
+    
+    int httpResponseCode = http.POST(payload);
+    Serial.print("HTTP 响应代码: ");
+    Serial.println(httpResponseCode);  // 打印 HTTP 响应代码
+
+    if (httpResponseCode > 0) {
+        String response = http.getString();  // 获取响应内容
+        Serial.println("推送通知发送成功");
+        Serial.println("响应内容: " + response);  // 打印响应内容
+    } else {
+        Serial.println("推送通知发送失败");
+        Serial.print("错误代码: ");
+        Serial.println(httpResponseCode);
+    }
+    http.end();
+}
+
+/*******************************************************************************
+* 函 数 名         : loop
+* 函数功能		   : 主循环
+*******************************************************************************/  	
 
 void loop() {
     server.handleClient();
@@ -695,6 +837,7 @@ void loop() {
             String alertMsg = "{\"type\":\"alert\",\"message\":\"警告：UV指数已达到 " + String(uv);
             alertMsg += "，超过警报阈值 " + String(uvAlertThreshold) + "！请注意防护。\"}";
             webSocket.broadcastTXT(alertMsg);
+            sendPushNotification(uv);
         }
         
         // 保存数据到文件
@@ -705,9 +848,9 @@ void loop() {
     delay(100);
 }
 
-void listFiles() {
-    Dir dir = LittleFS.openDir("/");
-    while (dir.next()) {
-        Serial.println(dir.fileName());
-    }
-}
+// void listFiles() {
+//     Dir dir = LittleFS.openDir("/");
+//     while (dir.next()) {
+//         Serial.println(dir.fileName());
+//     }
+// }
