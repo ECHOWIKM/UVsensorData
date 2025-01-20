@@ -53,6 +53,7 @@ const char HTML_HELP_BUTTON[] PROGMEM = R"rawliteral(
         padding: 20px;
         box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         z-index: 1001;
+        overflow: hidden; /* 防止内容溢出 */
     }
     .help-modal h2 {
         margin-top: 0;
@@ -65,9 +66,19 @@ const char HTML_HELP_BUTTON[] PROGMEM = R"rawliteral(
         padding: 5px 10px;
         cursor: pointer;
     }
+    .watermark {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0.1; /* 设置透明度 */
+        z-index: -1; /* 使水印在背景 */
+    }
 </style>
 <button class="help-button" onclick="toggleHelp()">帮助</button>
 <div class="help-modal" id="helpModal">
+    <img src="logo.png" class="watermark" alt="公司Logo">
     <h2>传感器说明</h2>
     <p>这是一个 UV 传感器，用于测量紫外线强度。它可以帮助用户了解紫外线的水平，从而采取适当的防护措施。</p>
     <h3>电压等级含义范围</h3>

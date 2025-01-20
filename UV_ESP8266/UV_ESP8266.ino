@@ -704,3 +704,10 @@ void loop() {
     
     delay(100);
 }
+
+void listFiles() {
+    Dir dir = LittleFS.openDir("/");
+    while (dir.next()) {
+        Serial.println(dir.fileName());
+    }
+}
