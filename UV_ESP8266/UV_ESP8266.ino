@@ -55,6 +55,9 @@ struct UVRecord {
   int uvIndex;
 };
 
+// 声明校准系数变量
+float calibrationFactor;  // 校准系数
+
 // 获取UV等级对应的颜色
 String getUVLevelColor(int uvIndex) {
   if(uvIndex <= 2) {
@@ -278,6 +281,9 @@ void setup() {
   darkValue = sum >> 6;
   Serial.print("Dark value: ");
   Serial.println(darkValue);
+
+  // 自动校准
+  autoCalibrate();
 }
 
 void handleRoot() {
@@ -589,6 +595,35 @@ void checkStorage() {
         String alertMsg = "{\"type\":\"alert\",\"message\":\"存储空间不足！可用空间: " + String(availableSpace) + " bytes\"}";
         webSocket.broadcastTXT(alertMsg);
     }
+}
+
+void autoCalibrate() {
+    Serial.println("开始自动校准...");
+
+    // 校准暗值
+    sum = 0;
+    for (int i = 0; i < 64; i++) {
+        sum += analogRead(A0);
+        delay(2);
+    }
+    darkValue = sum >> 6;  // 计算暗值
+    Serial.print("暗值校准完成: ");
+    Serial.println(darkValue);
+
+    // 校准光照值（假设在阳光下）
+    sum = 0;
+    for (int i = 0; i < 64; i++) {
+        sum += analogRead(A0);
+        delay(2);
+    }
+    int fullScaleValue = sum >> 6;  // 计算满量程值
+    Serial.print("光照值校准完成: ");
+    Serial.println(fullScaleValue);
+
+    // 计算校准系数
+    calibrationFactor = fullScaleValue - darkValue;
+    Serial.print("校准系数: ");
+    Serial.println(calibrationFactor);
 }
 
 void loop() {
