@@ -28,8 +28,8 @@
 #include "html_template.h"
 #include "html_cards.h"
 
-const char* ssid = "010";  // 替换为您的WiFi名称
-const char* password = "66666666";  // 替换为您的WiFi密码
+const char* ssid = "sakaiwei";  // 替换为您的WiFi名称
+const char* password = "12345678";  // 替换为您的WiFi密码
 
 ESP8266WebServer server(80);  // 创建Web服务器对象
 WebSocketsServer webSocket = WebSocketsServer(81);  // 使用81端口
@@ -290,6 +290,9 @@ void handleRoot() {
     html += createChartCard();
     html += createControlPanel();
     html += createHistoryCard();
+    
+    // 添加帮助按钮
+    html += FPSTR(HTML_HELP_BUTTON);
     
     html += FPSTR(HTML_SCRIPTS);
     html += FPSTR(HTML_BODY_END);
